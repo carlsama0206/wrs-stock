@@ -258,6 +258,15 @@
     .emailPreview{width:100%;min-height:220px;border:2px solid #cbd5e1;border-radius:16px;padding:12px;background:white;color:#0f172a;font:14px/1.45 Arial,Helvetica,sans-serif;resize:vertical}
     body.dark .emailPreview{background:#0f172a;color:#e5e7eb;border-color:#475569}
     .modalFoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+
+    .formGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .formGrid .wide{grid-column:1 / -1}
+    .formGrid textarea{min-height:96px}
+    .dangerTiny{font-size:.72rem;padding:7px 9px;border-radius:12px}
+    .undoBtn{font-size:.72rem;padding:7px 10px;border-radius:12px;min-height:32px}
+    .undoBtn[disabled]{opacity:.45;cursor:not-allowed}
+    .itemDeletedRow{opacity:.75;text-decoration:line-through}
+    @media(max-width:760px){.formGrid{grid-template-columns:1fr}.workspaceTop .btn-green{width:100%}}
     @media(max-width:620px){.valveOrderRow{grid-template-columns:1fr}.valveOrderQty{max-width:none}.valveOrderQtyLine{grid-template-columns:1fr 88px}}
 
 
@@ -308,6 +317,11 @@
     .qrLabel .small,.qrLinkedNote{overflow-wrap:anywhere}
     @media(max-width:860px){#qrLabels.qrGrid{grid-template-columns:1fr}.qrPairLabels{grid-template-columns:1fr}.qrLabel img{width:min(190px,100%)}}
     @media print{#qrLabels.qrGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.qrPairLabels{grid-template-columns:1fr 1fr}.qrLabel img{width:160px}}
+
+    .syncStatus{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:7px 10px;background:#e2e8f0;color:#334155;font-size:.72rem;font-weight:1000;margin-top:8px}
+    .syncStatus.on{background:#dcfce7;color:#166534}.syncStatus.err{background:#fee2e2;color:#991b1b}.syncStatus.warn{background:#fef3c7;color:#92400e}
+    .syncControls{display:grid;gap:8px}.syncControls button{min-height:44px;font-size:.78rem}.syncMiniGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media(max-width:700px){.syncMiniGrid{grid-template-columns:1fr}}
 
   </style>
 </head>
@@ -397,6 +411,7 @@
             <div class="filterDock">
               <select id="categoryFilter" onchange="renderAdmin(); renderSearchSuggestions()"><option value="">All categories</option></select>
               <select id="statusFilter" onchange="renderAdmin(); renderSearchSuggestions()"><option value="">All status</option><option value="OUT">Out</option><option value="LOW">Low</option><option value="AT">At reorder</option><option value="OK">OK</option></select>
+              <button class="btn-green" onclick="openAddStockModal()">+ Add Stock</button>
             </div>
           </div>
           <div class="tinyStats">
@@ -437,7 +452,7 @@
 
         <section id="changelogView" class="viewPane card hidden">
           <h2 style="margin-top:0">Changelog / What Techs Took</h2>
-          <table><thead><tr><th>Time</th><th>Tech</th><th>Action</th><th>Part</th><th>Location</th><th>Qty</th><th>Before</th><th>After</th></tr></thead><tbody id="logRows"></tbody></table>
+          <table><thead><tr><th>Time</th><th>Tech</th><th>Action</th><th>Part</th><th>Location</th><th>Qty</th><th>Before</th><th>After</th><th>Undo</th></tr></thead><tbody id="logRows"></tbody></table>
         </section>
 
         <section id="orderView" class="viewPane hidden">
@@ -527,6 +542,66 @@
       </div>
     </div>
 
+    <div id="addStockModal" class="modalOverlay hidden noPrint">
+      <div class="modalCard">
+        <div class="modalHead">
+          <div>
+            <h2 style="margin:0">Add Stock Item</h2>
+            <div class="small">Add a completely new item to inventory. This syncs to Google Sheets when live sync is enabled.</div>
+          </div>
+          <button class="miniIcon" onclick="closeAddStockModal()">×</button>
+        </div>
+        <div class="formGrid">
+          <div class="wide">
+            <label>Item name</label>
+            <input id="addItemName" placeholder="Example: GB Valve Bolt Kit">
+          </div>
+          <div>
+            <label>Category</label>
+            <select id="addItemCategory">
+              <option>Electrical</option><option>Hydraulic</option><option>Hardware</option><option>PLC / Electronics</option><option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Subcategory</label>
+            <input id="addItemSubcategory" placeholder="Valves, Controls, Fittings...">
+          </div>
+          <div>
+            <label>North quantity</label>
+            <input id="addNorthQty" type="number" min="0" value="0">
+          </div>
+          <div>
+            <label>South quantity</label>
+            <input id="addSouthQty" type="number" min="0" value="0">
+          </div>
+          <div>
+            <label>Unit</label>
+            <input id="addItemUnit" value="ea">
+          </div>
+          <div>
+            <label>Reorder amount</label>
+            <input id="addItemReorder" type="number" min="0" placeholder="Optional">
+          </div>
+          <div>
+            <label>Max / recommended amount</label>
+            <input id="addItemMax" type="number" min="0" placeholder="Optional">
+          </div>
+          <div>
+            <label>Part numbers</label>
+            <input id="addItemPartNumbers" placeholder="Separate multiple with comma">
+          </div>
+          <div class="wide">
+            <label>Notes</label>
+            <textarea id="addItemNotes" placeholder="Vendor, manufacturer number, where it is stored, usage notes..."></textarea>
+          </div>
+        </div>
+        <div class="modalFoot">
+          <button class="btn-light" onclick="closeAddStockModal()">Cancel</button>
+          <button class="btn-green" onclick="saveNewStockItem()">Add Item</button>
+        </div>
+      </div>
+    </div>
+
     <div id="settingsModal" class="modalOverlay hidden noPrint">
       <div class="modalCard">
         <div class="modalHead">
@@ -563,6 +638,27 @@
             <div style="height:8px"></div>
             <button class="btn-primary" onclick="saveBaseUrl()">Save QR URL</button>
             <div class="settingsNote">Used when generating scannable QR labels.</div>
+          </div>
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">Google Sheets Live Sync</h3>
+            <div class="small">Use Google Sheets as the live database for phones and computers.</div>
+            <label style="margin-top:10px">Apps Script Web App URL</label>
+            <input id="gsApiUrl" placeholder="https://script.google.com/macros/s/.../exec">
+            <label style="margin-top:10px">API token</label>
+            <input id="gsApiToken" placeholder="same token from Apps Script">
+            <label class="toggleLine"><span>Enable live sync</span><input id="gsEnabledToggle" type="checkbox" onchange="setGoogleSyncEnabled(this.checked)"></label>
+            <div class="syncControls">
+              <div class="syncMiniGrid">
+                <button class="btn-primary" onclick="saveGoogleSyncSettings()">Save Sync Settings</button>
+                <button class="btn-light" onclick="testGoogleSync()">Test / Setup Sheets</button>
+              </div>
+              <div class="syncMiniGrid">
+                <button class="btn-yellow" onclick="seedGoogleSheetFromSite()">Seed Google Sheet From This Site</button>
+                <button class="btn-green" onclick="pullRemoteState(true)">Pull Latest Now</button>
+              </div>
+            </div>
+            <div id="gsSyncStatus" class="syncStatus warn">Live sync not configured</div>
+            <div class="settingsNote">Seed once after deploying Apps Script. After that, normal scan/update buttons write to the Sheet.</div>
           </div>
           <div class="settingBlock">
             <h3 style="margin:0 0 8px">Exports</h3>
@@ -756,6 +852,7 @@ function migrateState(st){
       st.items.push(JSON.parse(JSON.stringify(si)));
     }
   });
+  ensureLogIds(st.log);
   return st;
 }
 function seedPresetPendingOrders(){
@@ -775,6 +872,7 @@ function seedPresetPendingOrders(){
   });
 }
 function saveState(opts={}){
+  ensureLogIds(state.log);
   const raw = JSON.stringify(state);
   localStorage.setItem(STORAGE_KEY, raw);
   lastStateJSON = raw;
@@ -812,6 +910,31 @@ function itemCount(i, loc){ return Number(i[loc==="North"?"northQty":"southQty"]
 function itemStatus(i){ const north=itemCount(i,"North"), south=itemCount(i,"South"); const count=north+south; if(count===0)return"OUT"; if(i.reorder!==""&&i.reorder!==null&&i.reorder!==undefined){const r=Number(i.reorder); if(count<r)return"LOW"; if(count===r)return"AT";} return"OK"; }
 function statusText(s){ return s==="OUT"?"OUT":s==="LOW"?"LOW":s==="AT"?"AT REORDER":"OK"; }
 function statusPill(s){ const cls=s==="OUT"?"out":s==="OK"?"ok":"low"; return `<span class="pill ${cls}">${statusText(s)}</span>`; }
+
+function makeClientId(prefix="id"){
+  return prefix + "_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+}
+function makeItemId(name){
+  const base=String(name||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,60) || "item";
+  let id=base, n=2;
+  while(state.items.some(i=>i.id===id)){ id=base+"-"+n++; }
+  return id;
+}
+function ensureLogIds(logs){
+  (logs||[]).forEach(l=>{ if(!l.logId) l.logId=makeClientId("log"); });
+}
+function makeLog(data){ return Object.assign({logId:makeClientId("log"), time:new Date().toLocaleString(), tech:(currentUser?currentUser.initials:"ADMIN"), action:"", name:"", id:"", location:"", qty:"", before:"", after:"", notes:""}, data||{}); }
+function parseLogNotes(notes){ try{ return JSON.parse(notes||"{}"); }catch(e){ return {}; } }
+function hasUndoFor(logId){ return (state.log||[]).some(l=>{ const n=parseLogNotes(l.notes); return n && n.originalLogId===logId && String(l.action||"").toLowerCase().startsWith("undo"); }); }
+function canUndoLog(l){
+  if(!l || !l.logId || hasUndoFor(l.logId)) return false;
+  const a=String(l.action||"").toLowerCase();
+  if(a.startsWith("undo")) return false;
+  if(["take","add","set exact","received pending order"].includes(a)) return !!l.id && (l.location==="North" || l.location==="South") && l.before!=="" && l.before!==undefined;
+  if(a==="add item" || a==="delete item" || a==="inventory checked") return true;
+  if(a==="marked pending order" || a==="cancelled pending order") return true;
+  return false;
+}
 function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",2600); }
 function beep(){ try{ navigator.vibrate && navigator.vibrate(70); const ac=new (window.AudioContext||window.webkitAudioContext)(); const o=ac.createOscillator(); const g=ac.createGain(); o.frequency.value=880; g.gain.value=.05; o.connect(g); g.connect(ac.destination); o.start(); setTimeout(()=>{o.stop(); ac.close();},90);}catch(e){} }
 function getBaseUrl(){ return localStorage.getItem(BASE_KEY)||location.href.split("?")[0].split("#")[0]; }
@@ -1032,6 +1155,7 @@ function cardHtml(i){
       <button class="btn-primary miniAction" onclick="openPartById('${i.id}','South')">Adjust S</button>
       ${i.checkInventory?`<button class="btn-yellow miniAction" onclick="markInventoryChecked('${i.id}')">Checked</button>`:""}
       <button class="btn-light miniAction" onclick="markPending('${i.id}')">Pending</button>
+      <button class="btn-red miniAction dangerTiny" onclick="deleteStockItem('${i.id}'); event.stopPropagation();">Delete</button>
     </div>
   </div>`;
 }
@@ -1072,7 +1196,142 @@ function showAdminView(v){
 function renderLog(){
   const body=document.getElementById("logRows");
   if(!body) return;
-  body.innerHTML=state.log.slice().reverse().map(l=>`<tr><td data-label="Time">${esc(l.time)}</td><td data-label="Tech">${esc(l.tech)}</td><td data-label="Action">${esc(l.action)}</td><td data-label="Part">${esc(l.name)}</td><td data-label="Location">${esc(l.location)}</td><td data-label="Qty">${esc(l.qty)}</td><td data-label="Before">${esc(l.before)}</td><td data-label="After">${esc(l.after)}</td></tr>`).join("");
+  ensureLogIds(state.log);
+  body.innerHTML=state.log.slice().reverse().map(l=>{
+    const undoable=canUndoLog(l);
+    const undone=hasUndoFor(l.logId);
+    const cls=String(l.action||"").toLowerCase()==="delete item"?" class=\"itemDeletedRow\"":"";
+    const undoCell=undone?`<span class="small">Undone</span>`:(undoable?`<button class="btn-yellow undoBtn" onclick="undoLogAction('${escAttr(l.logId)}')">Undo</button>`:`<button class="btn-light undoBtn" disabled>—</button>`);
+    return `<tr${cls}><td data-label="Time">${esc(l.time)}</td><td data-label="Tech">${esc(l.tech)}</td><td data-label="Action">${esc(l.action)}</td><td data-label="Part">${esc(l.name)}</td><td data-label="Location">${esc(l.location)}</td><td data-label="Qty">${esc(l.qty)}</td><td data-label="Before">${esc(l.before)}</td><td data-label="After">${esc(l.after)}</td><td data-label="Undo">${undoCell}</td></tr>`;
+  }).join("");
+}
+
+
+function openAddStockModal(){
+  const m=document.getElementById("addStockModal"); if(!m) return;
+  ["addItemName","addItemSubcategory","addItemPartNumbers","addItemNotes"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  const n=document.getElementById("addNorthQty"); if(n) n.value=0;
+  const so=document.getElementById("addSouthQty"); if(so) so.value=0;
+  const u=document.getElementById("addItemUnit"); if(u) u.value="ea";
+  const r=document.getElementById("addItemReorder"); if(r) r.value="";
+  const mx=document.getElementById("addItemMax"); if(mx) mx.value="";
+  m.classList.remove("hidden");
+  setTimeout(()=>document.getElementById("addItemName")?.focus(),50);
+}
+function closeAddStockModal(){ const m=document.getElementById("addStockModal"); if(m) m.classList.add("hidden"); }
+function buildNewStockItemFromForm(){
+  const name=(document.getElementById("addItemName")?.value||"").trim();
+  if(!name){ alert("Enter an item name."); return null; }
+  const north=Number(document.getElementById("addNorthQty")?.value||0);
+  const south=Number(document.getElementById("addSouthQty")?.value||0);
+  if(!Number.isFinite(north)||north<0||!Number.isFinite(south)||south<0){ alert("Enter valid North/South quantities."); return null; }
+  const partNums=(document.getElementById("addItemPartNumbers")?.value||"").trim();
+  const notes=(document.getElementById("addItemNotes")?.value||"").trim();
+  const mergedNotes=[partNums?"Part number: "+partNums:"", notes].filter(Boolean).join(" | ");
+  return {
+    id: makeItemId(name), name,
+    category:(document.getElementById("addItemCategory")?.value||"Other").trim() || "Other",
+    subcategory:(document.getElementById("addItemSubcategory")?.value||"").trim() || "General",
+    unit:(document.getElementById("addItemUnit")?.value||"ea").trim() || "ea",
+    northQty:north, southQty:south,
+    originalQtyText:String(north+south),
+    reorder:(document.getElementById("addItemReorder")?.value||"").trim(),
+    max:(document.getElementById("addItemMax")?.value||"").trim(),
+    condition:"Manual Add",
+    notes:mergedNotes,
+    checkInventory:false,
+    checkedAt:"",
+    adcItems:[],
+    updatedAt:new Date().toISOString()
+  };
+}
+async function saveNewStockItem(){
+  const item=buildNewStockItemFromForm(); if(!item) return;
+  if(googleSyncEnabled()){
+    setSyncStatus("Adding item to Google Sheets…","warn");
+    try{
+      const res=await googleJsonp({action:"addItem", item:JSON.stringify(item), tech:remoteTech()});
+      applyRemoteState(res.state,res.version);
+      closeAddStockModal(); showToast("Item added and synced");
+    }catch(e){ setSyncStatus("Add failed: "+e.message,"err"); alert("Google Sheets add failed: "+e.message); }
+    return;
+  }
+  state.items.push(item);
+  state.log.push(makeLog({action:"add item", name:item.name, id:item.id, location:"", qty:item.northQty+item.southQty, before:"", after:"created", notes:JSON.stringify({itemSnapshot:item})}));
+  saveState(); closeAddStockModal(); populateFilters(); renderAdmin(); showToast("Item added");
+}
+async function deleteStockItem(id){
+  const item=state.items.find(i=>i.id===id); if(!item) return alert("Item not found.");
+  if(!confirm("Delete this stock item entirely?\n\n"+item.name+"\n\nYou can undo it from the changelog.")) return;
+  if(googleSyncEnabled()){
+    setSyncStatus("Deleting item from Google Sheets…","warn");
+    try{
+      const res=await googleJsonp({action:"deleteItem", itemId:id, tech:remoteTech()});
+      applyRemoteState(res.state,res.version);
+      showToast("Item deleted and synced");
+    }catch(e){ setSyncStatus("Delete failed: "+e.message,"err"); alert("Google Sheets delete failed: "+e.message); }
+    return;
+  }
+  const idx=state.items.findIndex(i=>i.id===id);
+  const snapshot=JSON.parse(JSON.stringify(item));
+  state.items.splice(idx,1);
+  state.log.push(makeLog({action:"delete item", name:item.name, id:item.id, location:"", qty:"", before:"active", after:"deleted", notes:JSON.stringify({itemSnapshot:snapshot})}));
+  saveState(); populateFilters(); renderAdmin(); showToast("Item deleted. Undo is in changelog.");
+}
+async function undoLogAction(logId){
+  const l=(state.log||[]).find(x=>String(x.logId)===String(logId));
+  if(!l) return alert("Log entry not found.");
+  if(hasUndoFor(logId)) return alert("That action has already been undone.");
+  if(!confirm("Undo this action?\n\n"+l.action+" — "+l.name)) return;
+  if(googleSyncEnabled()){
+    setSyncStatus("Undoing in Google Sheets…","warn");
+    try{
+      const res=await googleJsonp({action:"undoLog", logId, tech:remoteTech()});
+      applyRemoteState(res.state,res.version);
+      showToast("Action undone and synced");
+    }catch(e){ setSyncStatus("Undo failed: "+e.message,"err"); alert("Google Sheets undo failed: "+e.message); }
+    return;
+  }
+  localUndoLog(l);
+}
+function localUndoLog(l){
+  const a=String(l.action||"").toLowerCase();
+  const notes=parseLogNotes(l.notes);
+  const tech=(currentUser?currentUser.initials:"ADMIN");
+  let undo;
+  if(["take","add","set exact","received pending order"].includes(a)){
+    const item=state.items.find(i=>i.id===l.id); if(!item) return alert("Item no longer exists. Restore the item first if needed.");
+    const key=l.location==="North"?"northQty":l.location==="South"?"southQty":""; if(!key) return alert("This log does not have a valid location to undo.");
+    const beforeNow=Number(item[key]||0);
+    item[key]=Number(l.before||0);
+    undo=makeLog({tech, action:"undo "+l.action, name:l.name, id:l.id, location:l.location, qty:l.qty, before:beforeNow, after:item[key], notes:JSON.stringify({originalLogId:l.logId})});
+  }else if(a==="add item"){
+    const idx=state.items.findIndex(i=>i.id===l.id);
+    if(idx>=0) state.items.splice(idx,1);
+    undo=makeLog({tech, action:"undo add item", name:l.name, id:l.id, before:"active", after:"deleted", notes:JSON.stringify({originalLogId:l.logId})});
+  }else if(a==="delete item"){
+    const item=notes.itemSnapshot;
+    if(!item) return alert("No deleted item snapshot found for this log.");
+    if(!state.items.some(i=>i.id===item.id)) state.items.push(item);
+    undo=makeLog({tech, action:"undo delete item", name:item.name, id:item.id, before:"deleted", after:"active", notes:JSON.stringify({originalLogId:l.logId})});
+  }else if(a==="inventory checked"){
+    const item=state.items.find(i=>i.id===l.id); if(!item) return alert("Item not found.");
+    item.checkInventory=true; item.checkedAt="";
+    undo=makeLog({tech, action:"undo inventory checked", name:l.name, id:l.id, before:"checked", after:"needs check", notes:JSON.stringify({originalLogId:l.logId})});
+  }else if(a==="marked pending order"){
+    // Best-effort: remove a matching pending order if it still exists.
+    const idx=(state.pendingOrders||[]).findIndex(p=>p.itemId===l.id && String(p.qty)===String(l.qty) && p.status==="pending");
+    if(idx>=0) state.pendingOrders.splice(idx,1);
+    undo=makeLog({tech, action:"undo marked pending order", name:l.name, id:l.id, qty:l.qty, before:"pending", after:"removed", notes:JSON.stringify({originalLogId:l.logId})});
+  }else if(a==="cancelled pending order"){
+    const pending=notes.pendingSnapshot;
+    if(pending && !state.pendingOrders.some(p=>p.id===pending.id)) state.pendingOrders.push(Object.assign({},pending,{status:"pending"}));
+    undo=makeLog({tech, action:"undo cancelled pending order", name:l.name, id:l.id, qty:l.qty, before:"cancelled", after:"pending", notes:JSON.stringify({originalLogId:l.logId})});
+  }else{
+    return alert("This action cannot be undone yet.");
+  }
+  state.log.push(undo);
+  saveState(); populateFilters(); renderAdmin(); showToast("Action undone");
 }
 
 function requestCameraPermissionOnTechScreen(){
@@ -1762,11 +2021,250 @@ document.addEventListener("click", function(e){
 });
 
 function blobDownload(content,name,type){const b=new Blob([content],{type}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+
 function resetData(){ if(!confirm("Reset inventory and clear log?"))return; state={items:cloneStarter(),log:[]}; saveState(); renderAdmin(); }
+
+/* Google Sheets live sync integration */
+const GS_URL_KEY = "shop_inventory_google_script_url_v1";
+const GS_TOKEN_KEY = "shop_inventory_google_api_token_v1";
+const GS_ENABLED_KEY = "shop_inventory_google_sync_enabled_v1";
+const GS_VERSION_KEY = "shop_inventory_google_sync_version_v1";
+let gsPollTimer = null;
+let gsBusy = false;
+let gsLastVersion = localStorage.getItem(GS_VERSION_KEY) || "";
+let gsLastPull = 0;
+
+function getGoogleApiUrl(){ return (localStorage.getItem(GS_URL_KEY) || "").trim(); }
+function getGoogleApiToken(){ return (localStorage.getItem(GS_TOKEN_KEY) || "").trim(); }
+function googleSyncEnabled(){ return localStorage.getItem(GS_ENABLED_KEY)==="1" && !!getGoogleApiUrl() && !!getGoogleApiToken(); }
+function setSyncStatus(text, mode="warn"){
+  const el=document.getElementById("gsSyncStatus");
+  if(!el) return;
+  el.textContent=text;
+  el.className="syncStatus " + (mode||"warn");
+}
+function syncGoogleSettingsMenu(){
+  const url=document.getElementById("gsApiUrl"); if(url) url.value=getGoogleApiUrl();
+  const token=document.getElementById("gsApiToken"); if(token) token.value=getGoogleApiToken();
+  const en=document.getElementById("gsEnabledToggle"); if(en) en.checked=localStorage.getItem(GS_ENABLED_KEY)==="1";
+  if(googleSyncEnabled()) setSyncStatus("Live sync enabled" + (gsLastVersion?" • last version " + gsLastVersion.slice(0,19):""), "on");
+  else setSyncStatus("Live sync not configured", "warn");
+}
+const originalSyncSettingsMenu = syncSettingsMenu;
+syncSettingsMenu = function(){ originalSyncSettingsMenu(); syncGoogleSettingsMenu(); };
+
+function saveGoogleSyncSettings(){
+  const url=(document.getElementById("gsApiUrl")?.value||"").trim();
+  const token=(document.getElementById("gsApiToken")?.value||"").trim();
+  if(url) localStorage.setItem(GS_URL_KEY, url);
+  if(token) localStorage.setItem(GS_TOKEN_KEY, token);
+  syncGoogleSettingsMenu();
+  startGooglePolling();
+}
+function setGoogleSyncEnabled(on){
+  saveGoogleSyncSettings();
+  if(on && (!getGoogleApiUrl() || !getGoogleApiToken())){
+    alert("Paste the Apps Script URL and API token first.");
+    localStorage.setItem(GS_ENABLED_KEY,"0");
+  } else {
+    localStorage.setItem(GS_ENABLED_KEY,on?"1":"0");
+  }
+  syncGoogleSettingsMenu();
+  startGooglePolling();
+}
+function googleJsonp(params, timeoutMs=18000){
+  return new Promise((resolve,reject)=>{
+    const url=getGoogleApiUrl();
+    const token=getGoogleApiToken();
+    if(!url || !token) return reject(new Error("Google sync URL/token missing"));
+    const cb="__wrsSync_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2);
+    const qs=new URLSearchParams(Object.assign({},params,{token,callback:cb,_:Date.now()}));
+    const sep=url.includes("?")?"&":"?";
+    const script=document.createElement("script");
+    let done=false;
+    const timer=setTimeout(()=>cleanup(new Error("Google Sheets API timed out")), timeoutMs);
+    function cleanup(err,data){
+      if(done) return; done=true;
+      clearTimeout(timer);
+      try{ delete window[cb]; }catch(e){ window[cb]=undefined; }
+      if(script.parentNode) script.parentNode.removeChild(script);
+      err?reject(err):resolve(data);
+    }
+    window[cb]=(data)=>{
+      if(!data || data.ok===false) cleanup(new Error((data && data.error) || "Google Sheets API error"));
+      else cleanup(null,data);
+    };
+    script.onerror=()=>cleanup(new Error("Could not reach Google Apps Script"));
+    script.src=url+sep+qs.toString();
+    document.body.appendChild(script);
+  });
+}
+async function googlePost(action, payload){
+  const url=getGoogleApiUrl(); const token=getGoogleApiToken();
+  if(!url || !token) throw new Error("Google sync URL/token missing");
+  await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({action,token},payload||{}))});
+}
+function applyRemoteState(remoteState, version){
+  if(!remoteState || !Array.isArray(remoteState.items)) return;
+  state = migrateState(remoteState);
+  if(!Array.isArray(state.log)) state.log=[];
+  if(!Array.isArray(state.pendingOrders)) state.pendingOrders=[];
+  lastStateJSON=JSON.stringify(state);
+  localStorage.setItem(STORAGE_KEY,lastStateJSON);
+  if(version){ gsLastVersion=version; localStorage.setItem(GS_VERSION_KEY,version); }
+  if(currentItem){ const updated=state.items.find(i=>i.id===currentItem.id); if(updated) currentItem=updated; }
+  populateFilters();
+  refreshLiveViews();
+  if(currentItem) refreshPanel();
+  syncGoogleSettingsMenu();
+}
+function applyRemoteItemAndLog(item, log, version){
+  if(item){
+    const idx=state.items.findIndex(i=>i.id===item.id);
+    if(idx>=0) state.items[idx]=Object.assign({}, state.items[idx], item);
+    else state.items.push(item);
+    if(currentItem && currentItem.id===item.id) currentItem=state.items.find(i=>i.id===item.id);
+  }
+  if(log){
+    if(!Array.isArray(state.log)) state.log=[];
+    if(!log.logId || !state.log.some(l=>l.logId===log.logId)) state.log.push(log);
+  }
+  if(version){ gsLastVersion=version; localStorage.setItem(GS_VERSION_KEY,version); }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  populateFilters();
+  refreshLiveViews();
+  if(currentItem) refreshPanel();
+  syncGoogleSettingsMenu();
+}
+async function testGoogleSync(){
+  saveGoogleSyncSettings();
+  setSyncStatus("Testing Google Sheets sync…","warn");
+  try{
+    const res=await googleJsonp({action:"setup"});
+    if(res.state && res.state.items && res.state.items.length) applyRemoteState(res.state,res.version);
+    setSyncStatus("Connected. Sheets are ready.","on");
+  }catch(e){ setSyncStatus("Sync test failed: "+e.message,"err"); alert("Sync test failed: "+e.message); }
+}
+async function seedGoogleSheetFromSite(){
+  saveGoogleSyncSettings();
+  if(!getGoogleApiUrl() || !getGoogleApiToken()) return alert("Paste Apps Script URL and token first.");
+  if(!confirm("Seed Google Sheets with the inventory currently in this site? Do this once before enabling live sync.")) return;
+  setSyncStatus("Sending current site inventory to Google Sheets…","warn");
+  try{
+    await googlePost("seedState",{state});
+    setSyncStatus("Seed sent. Pulling latest from Google Sheets…","warn");
+    setTimeout(()=>pullRemoteState(true),2500);
+  }catch(e){ setSyncStatus("Seed failed: "+e.message,"err"); alert("Seed failed: "+e.message); }
+}
+async function pullRemoteState(force=false){
+  if(!googleSyncEnabled() && !force) return;
+  if(gsBusy) return;
+  const now=Date.now();
+  if(!force && now-gsLastPull<4500) return;
+  gsLastPull=now;
+  gsBusy=true;
+  try{
+    const res=await googleJsonp({action:"getState"});
+    if(force || !gsLastVersion || res.version!==gsLastVersion){ applyRemoteState(res.state,res.version); }
+    setSyncStatus("Live sync connected" + (res.version?" • " + String(res.version).slice(11,19):""),"on");
+  }catch(e){ setSyncStatus("Sync pull failed: "+e.message,"err"); }
+  finally{ gsBusy=false; }
+}
+function startGooglePolling(){
+  if(gsPollTimer) clearInterval(gsPollTimer);
+  if(googleSyncEnabled()){
+    pullRemoteState(true);
+    gsPollTimer=setInterval(()=>pullRemoteState(false),7000);
+  }
+}
+function remoteTech(){ return (currentUser && currentUser.initials) ? currentUser.initials : "TECH"; }
+
+const localQuickChange = quickChange;
+quickChange = async function(delta){
+  if(!googleSyncEnabled()) return localQuickChange(delta);
+  if(!currentItem) return;
+  const loc=document.getElementById("panelLocation").value;
+  setSyncStatus("Saving to Google Sheets…","warn");
+  try{
+    const res=await googleJsonp({action:"updateQty", itemId:currentItem.id, loc, mode:"delta", qty:delta, tech:remoteTech()});
+    applyRemoteItemAndLog(res.item,res.log,res.version);
+    beep();
+    const l=res.log||{};
+    document.getElementById("lastAction").innerHTML=`Saved to Google Sheets for <b>${esc(currentItem.name)}</b><br><b>${esc(loc)}</b>: ${esc(l.before)} → ${esc(l.after)}<br><span class="small">Press Keep Updating / Scan Next when you are ready for the camera again.</span>`;
+    const scanMsg=document.getElementById("scanMessage"); if(scanMsg) scanMsg.textContent="Saved to Google Sheets. Part is still open.";
+    scannerPaused=true;
+  }catch(e){ setSyncStatus("Save failed: "+e.message,"err"); alert("Google Sheets save failed. Count was not changed. " + e.message); }
+};
+const localSetExact = setExact;
+setExact = async function(){
+  if(!googleSyncEnabled()) return localSetExact();
+  if(!currentItem) return;
+  const q=Number(document.getElementById("customQty").value||0);
+  if(!Number.isFinite(q)||q<0)return alert("Enter a valid count.");
+  const loc=document.getElementById("panelLocation").value;
+  setSyncStatus("Saving exact count to Google Sheets…","warn");
+  try{
+    const res=await googleJsonp({action:"updateQty", itemId:currentItem.id, loc, mode:"set", qty:q, tech:remoteTech()});
+    applyRemoteItemAndLog(res.item,res.log,res.version);
+    beep();
+    const l=res.log||{};
+    document.getElementById("lastAction").innerHTML=`Exact count saved to Google Sheets: <b>${esc(loc)}</b> ${esc(l.before)} → ${esc(l.after)}<br><span class="small">Press Keep Updating / Scan Next when you are ready for the camera again.</span>`;
+    const scanMsg=document.getElementById("scanMessage"); if(scanMsg) scanMsg.textContent="Exact count saved to Google Sheets.";
+    scannerPaused=true;
+  }catch(e){ setSyncStatus("Save failed: "+e.message,"err"); alert("Google Sheets save failed. Count was not changed. " + e.message); }
+};
+const localMarkInventoryChecked = markInventoryChecked;
+markInventoryChecked = async function(id){
+  if(!googleSyncEnabled()) return localMarkInventoryChecked(id);
+  try{
+    const res=await googleJsonp({action:"markChecked", itemId:id, tech:remoteTech()});
+    applyRemoteItemAndLog(res.item,res.log,res.version);
+    showToast("Inventory checked and synced");
+  }catch(e){ alert("Google Sheets check failed: "+e.message); }
+};
+const localMarkPending = markPending;
+markPending = async function(id){
+  if(!googleSyncEnabled()) return localMarkPending(id);
+  const item=state.items.find(i=>i.id===id); if(!item) return;
+  const suggested=suggestedOrder(item); const fallback=suggested==="" || suggested===0 ? 1 : suggested;
+  const qty=Number(prompt("Quantity ordered / pending for:\n"+item.name, fallback));
+  if(!Number.isFinite(qty)||qty<=0) return;
+  try{
+    const res=await googleJsonp({action:"addPending", itemId:id, qty, tech:remoteTech(), vendorGroup:partGroup(item)});
+    if(!Array.isArray(state.pendingOrders)) state.pendingOrders=[];
+    if(res.pending) state.pendingOrders.push(res.pending);
+    applyRemoteItemAndLog(null,res.log,res.version);
+    renderAdmin(); showToast("Pending order synced: "+item.name);
+  }catch(e){ alert("Google Sheets pending order failed: "+e.message); }
+};
+const localReceivePending = receivePending;
+receivePending = async function(pendingId, loc){
+  if(!googleSyncEnabled()) return localReceivePending(pendingId,loc);
+  try{
+    const res=await googleJsonp({action:"receivePending", pendingId, loc, tech:remoteTech()});
+    state.pendingOrders=(state.pendingOrders||[]).filter(p=>p.id!==pendingId);
+    applyRemoteItemAndLog(res.item,res.log,res.version);
+    renderAdmin(); showToast("Received order synced");
+  }catch(e){ alert("Google Sheets receive failed: "+e.message); }
+};
+const localCancelPending = cancelPending;
+cancelPending = async function(pendingId){
+  if(!googleSyncEnabled()) return localCancelPending(pendingId);
+  if(!confirm("Cancel this pending order?")) return;
+  try{
+    const res=await googleJsonp({action:"cancelPending", pendingId, tech:remoteTech()});
+    state.pendingOrders=(state.pendingOrders||[]).filter(p=>p.id!==pendingId);
+    applyRemoteItemAndLog(null,res.log,res.version);
+    renderAdmin(); showToast("Pending order cancelled and synced");
+  }catch(e){ alert("Google Sheets cancel failed: "+e.message); }
+};
+
 ["search","categoryFilter","statusFilter"].forEach(id=>{const el=document.getElementById(id); if(el) el.addEventListener("input",()=>{renderAdmin(); renderSearchSuggestions();});});
 document.getElementById("activeLocation").addEventListener("change",e=>setUiPref(LOC_KEY,e.target.value));
 document.getElementById("baseUrl").value=getBaseUrl();
 applyUiPrefs();
+syncGoogleSettingsMenu();
+startGooglePolling();
 populateFilters();
 route();
 </script>
