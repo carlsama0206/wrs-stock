@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Shop Inventory QR System</title>
+  <style>
+    :root{
+      --navy:#0f172a; --blue:#1d4ed8; --green:#16a34a; --red:#dc2626; --yellow:#f59e0b;
+      --bg:#eef3f8; --card:#fff; --ink:#0f172a; --muted:#64748b; --line:#d7dee9;
+      --good:#dcfce7; --goodText:#166534; --bad:#fee2e2; --badText:#991b1b;
+      --warn:#fef3c7; --warnText:#92400e;
+    }
+    *{box-sizing:border-box}
+    html{font-size:18px}
+    body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+    button,input,select{font:inherit}
+    button{border:0;border-radius:16px;min-height:54px;padding:12px 14px;font-weight:900;cursor:pointer}
+    input,select{border:2px solid #cbd5e1;border-radius:14px;padding:12px;background:white;min-height:52px;width:100%}
+    label{display:block;font-size:.74rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#475569;margin-bottom:5px}
+    .top{background:linear-gradient(135deg,#0f172a,#1d4ed8);color:white;padding:12px 14px;position:sticky;top:0;z-index:50;box-shadow:0 8px 26px rgba(15,23,42,.25)}
+    .top h1{margin:0;font-size:1.05rem}.top p{margin:4px 0 0;color:#dbeafe;font-size:.74rem}
+    .wrap{max-width:1280px;margin:auto;padding:12px}.centerWrap{min-height:calc(100vh - 75px);display:grid;place-items:center;padding:18px}
+    .card{background:white;border:1px solid var(--line);border-radius:20px;padding:14px;margin-bottom:12px;box-shadow:0 4px 18px rgba(15,23,42,.07)}
+    .loginCard{width:min(470px,100%);padding:22px;border-radius:26px}.loginCard h2{margin:0 0 8px;font-size:1.65rem}.loginCard p{margin:0 0 18px;color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.grow{flex:1 1 240px}
+    .btn-primary{background:var(--blue);color:white}.btn-dark{background:var(--navy);color:white}.btn-green{background:var(--green);color:white}.btn-red{background:var(--red);color:white}.btn-yellow{background:var(--yellow);color:#111827}.btn-light{background:#e2e8f0;color:#0f172a}
+    .small{font-size:.78rem;color:var(--muted)}.muted{color:var(--muted)}
+    .pill{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;font-weight:900;font-size:.75rem;white-space:nowrap}
+    .pill.ok{background:var(--good);color:var(--goodText)}.pill.low{background:var(--warn);color:var(--warnText)}.pill.out{background:var(--bad);color:var(--badText)}.pill.neutral{background:#e2e8f0;color:#334155}
+    .hidden{display:none!important}
+    .scannerOnly{max-width:720px;margin:auto;padding:10px}
+    .scannerCard{background:#020617;color:white;border-radius:22px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+    .scanHeader{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 12px;background:#111827}
+    .scanHeader b{font-size:.9rem}.scanHeader span{font-size:.72rem;color:#bfdbfe}
+    .videoWrap{position:relative;background:#000;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center}
+    video{width:100%;height:100%;object-fit:cover}
+    .scanBox{position:absolute;inset:18%;border:4px solid #60a5fa;border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.28)}
+    .scanLine{position:absolute;left:18%;right:18%;height:3px;background:#22c55e;box-shadow:0 0 12px #22c55e;animation:scan 1.8s linear infinite}
+    @keyframes scan{0%{top:20%}50%{top:78%}100%{top:20%}}
+    .scanControls{padding:12px;display:grid;gap:8px;background:#111827}
+    .statusBar{padding:10px 12px;background:#0f172a;color:#dbeafe;font-size:.8rem}
+    .bigStart{width:100%;font-size:1.05rem;min-height:66px}
+    .quickPanel{position:fixed;left:0;right:0;bottom:0;background:white;border-radius:26px 26px 0 0;box-shadow:0 -18px 70px rgba(15,23,42,.35);z-index:100;padding:14px;transform:translateY(110%);transition:.18s ease;max-height:88vh;overflow:auto}
+    .quickPanel.open{transform:translateY(0)}
+    .panelHandle{width:54px;height:6px;background:#cbd5e1;border-radius:999px;margin:0 auto 10px}
+    .partName{font-size:1.35rem;line-height:1.12;margin:0 0 4px;font-weight:1000}
+    .qtyGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
+    .qtyBox{background:#f8fafc;border:1px solid #e2e8f0;border-radius:16px;padding:10px;text-align:center}
+    .qtyBox span{display:block;color:#64748b;font-size:.68rem;font-weight:900;text-transform:uppercase}.qtyBox b{font-size:1.5rem}
+    .fastGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.fastGrid button{min-height:62px;font-size:1.05rem}
+    .take{background:var(--red);color:white}.add{background:var(--green);color:white}
+    .customRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end}
+    .adjustingNow{background:#eff6ff;border:2px solid #bfdbfe;color:#1e3a8a;border-radius:18px;padding:12px;margin:10px 0;font-weight:1000;text-align:center;font-size:1.05rem}
+    .lastAction{border-radius:16px;padding:12px;margin:10px 0;background:#f1f5f9;font-weight:900;text-align:center}
+    .adminGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    .itemCard{background:white;border:1px solid var(--line);border-radius:18px;padding:14px}
+    .itemCard h3{margin:0 0 4px;font-size:1rem}
+    .miniQty{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.mini{background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:8px 10px;min-width:78px}.mini span{display:block;color:#64748b;font-size:.65rem;font-weight:900;text-transform:uppercase}.mini b{font-size:1.15rem}
+    .tabs{display:flex;gap:8px;overflow:auto;margin-bottom:12px}.tabs button{background:#e2e8f0;white-space:nowrap}.tabs button.active{background:#0f172a;color:white}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px;margin-bottom:12px}.stat{background:white;border:1px solid var(--line);border-radius:18px;padding:14px}.stat span{display:block;color:#64748b;font-size:.7rem;font-weight:900;text-transform:uppercase}.stat b{font-size:1.55rem}
+    table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e2e8f0;padding:10px;text-align:left;font-size:.8rem}th{background:#f8fafc;color:#475569;text-transform:uppercase;font-size:.68rem}
+    .qrGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}.qrLabel{background:white;border:2px solid #111827;border-radius:14px;padding:12px;text-align:center;break-inside:avoid}.qrLabel h3{font-size:.9rem;margin:0 0 6px}.qrLabel img{width:155px;height:155px;margin:8px auto;display:block}
+    .toast{position:fixed;left:12px;right:12px;top:82px;background:#0f172a;color:white;padding:14px;border-radius:18px;z-index:200;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none;font-weight:800}
+    .notice{background:#fff7ed;border:2px solid #fed7aa;color:#9a3412;border-radius:18px;padding:12px;font-weight:700}
+    .adcBadge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#e0f2fe;color:#075985;font-size:.72rem;font-weight:900;padding:5px 9px;margin-top:6px}
+    .checkBadge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:.72rem;font-weight:900;padding:5px 9px;margin-top:6px}
+    .pendingBadge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;background:#ede9fe;color:#5b21b6;font-size:.72rem;font-weight:900;padding:5px 9px;margin-top:6px}
+    .adcGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+    .adcCard{background:white;border:1px solid var(--line);border-left:8px solid #0ea5e9;border-radius:18px;padding:14px;box-shadow:0 3px 14px rgba(15,23,42,.06)}
+    .adcCard.needCheck{border-left-color:#f59e0b}
+    .adcCard h3{margin:0 0 4px;font-size:1rem}
+    .pendingGrid{display:grid;gap:10px}
+    .pendingRow{background:white;border:1px solid var(--line);border-left:8px solid #8b5cf6;border-radius:18px;padding:14px;box-shadow:0 3px 14px rgba(15,23,42,.06);display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    .orderButtons{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .orderButtons button{min-height:46px;padding:9px 12px;font-size:.82rem}
+    @media(max-width:700px){.pendingRow{grid-template-columns:1fr}.adcGrid{grid-template-columns:1fr}.orderButtons button{width:100%}}
+
+    .orderButtonGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px}
+    .orderGroupBtn{min-height:58px}
+    .orderGroupBtn.active{outline:4px solid #93c5fd;box-shadow:0 0 0 2px #1d4ed8 inset}
+    .vendorActions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .vendorActions a,.vendorActions button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:0;border-radius:16px;min-height:54px;padding:12px 14px;font-weight:900;cursor:pointer}
+    .vendorActions a{background:#e2e8f0;color:#0f172a}
+    .orderList{display:grid;gap:10px}
+    .orderRow{background:white;border:1px solid var(--line);border-radius:18px;padding:14px;box-shadow:0 3px 14px rgba(15,23,42,.06);display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+    .orderRow.need{border-left:8px solid #f59e0b}
+    .orderRow.outNeed{border-left:8px solid #dc2626}
+    .orderMain h3{margin:0 0 4px;font-size:1rem}
+    .orderMeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .orderMeta .mini{min-width:86px}
+    .orderAmount{font-size:1.25rem;font-weight:1000;text-align:right}
+    .orderAmount span{display:block;font-size:.68rem;color:#64748b;text-transform:uppercase;font-weight:900}
+    @media(max-width:700px){.orderRow{grid-template-columns:1fr}.orderAmount{text-align:left}.orderButtonGrid{grid-template-columns:1fr}.vendorActions a,.vendorActions button{width:100%}}
+
+
+    /* Streamlined admin header */
+    .adminTop{position:sticky;top:63px;z-index:45;background:rgba(238,243,248,.92);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:20px;padding:10px;margin-bottom:10px;box-shadow:0 4px 18px rgba(15,23,42,.07)}
+    .commandBar{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+    .filterStack{display:grid;grid-template-columns:minmax(260px,1fr) minmax(260px,.8fr);gap:8px}
+    .quickSearch{min-height:44px;border-radius:14px;padding:9px 12px}
+    .filterMini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .filterMini select{min-height:44px;padding:8px 10px;border-radius:14px}
+    .topRightTools{position:relative}
+    .iconBtn{min-height:44px;width:48px;border-radius:14px;background:#e2e8f0;color:#0f172a;padding:0;font-size:1.1rem}
+    .miniIcon{min-height:34px;width:34px;border-radius:10px;padding:0;background:#e2e8f0;color:#0f172a}
+    .settingsMenu{position:absolute;right:0;top:54px;width:min(330px,calc(100vw - 34px));background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px;box-shadow:0 18px 60px rgba(15,23,42,.22);z-index:90}
+    .settingsMenuHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .toggleLine{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:10px 12px;margin:8px 0;color:var(--ink);text-transform:none;letter-spacing:0;font-size:.86rem}
+    .toggleLine input{width:auto;min-height:auto;transform:scale(1.15)}
+    .settingsMenuActions{display:grid;gap:8px;margin-top:10px}.settingsMenuActions button{width:100%;min-height:46px}
+    .summaryStrip{grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 0}.summaryStrip .stat{border-radius:14px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;gap:8px}.summaryStrip .stat span{font-size:.62rem}.summaryStrip .stat b{font-size:1.1rem}
+
+    body.compact .card, body.compact .itemCard, body.compact .adcCard, body.compact .orderRow, body.compact .pendingRow{padding:10px;border-radius:15px;margin-bottom:8px}
+    body.compact .adminGrid, body.compact .adcGrid{gap:8px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+    body.compact button{min-height:44px;padding:8px 10px} body.compact .mini{padding:6px 8px}
+
+    body.dark{--bg:#0b1220;--card:#111827;--ink:#e5e7eb;--muted:#94a3b8;--line:#334155;--good:#052e16;--goodText:#86efac;--bad:#450a0a;--badText:#fecaca;--warn:#451a03;--warnText:#fde68a;background:var(--bg);color:var(--ink)}
+    body.dark .adminTop{background:rgba(11,18,32,.92)}
+    body.dark .card, body.dark .itemCard, body.dark .adcCard, body.dark .orderRow, body.dark .pendingRow, body.dark .stat, body.dark .settingsMenu, body.dark .quickPanel, body.dark .qtyBox, body.dark .mini{background:var(--card);border-color:var(--line);color:var(--ink)}
+    body.dark input, body.dark select{background:#0f172a;color:var(--ink);border-color:#475569}
+    body.dark th{background:#0f172a;color:#cbd5e1} body.dark td{border-color:#334155}
+    body.dark .btn-light, body.dark .iconBtn, body.dark .miniIcon, body.dark .tabs button{background:#334155;color:#e5e7eb}
+    body.dark .tabs button.active{background:#2563eb;color:white}
+    body.dark .toggleLine{background:#0f172a;border-color:#334155;color:var(--ink)}
+    body.dark .adjustingNow{background:#172554;border-color:#1d4ed8;color:#bfdbfe} body.dark .lastAction{background:#0f172a}
+
+    @media(max-width:860px){.adminTop{top:62px}.filterStack{grid-template-columns:1fr}.commandBar{align-items:start}.summaryStrip{grid-template-columns:repeat(4,minmax(70px,1fr));overflow:auto}.summaryStrip .stat{min-width:78px;display:block}.summaryStrip .stat b{display:block;margin-top:2px}.filterMini{grid-template-columns:1fr 1fr}}
+    @media(max-width:520px){.adminTop{top:58px;padding:8px;border-radius:16px}.filterMini{grid-template-columns:1fr}.settingsMenu{right:-2px}.summaryStrip .stat span{font-size:.56rem}.summaryStrip .stat b{font-size:1rem}}
+
+    @media(max-width:920px){
+      html{font-size:18px}.wrap{padding:10px}.scannerOnly{padding:8px}.fastGrid{grid-template-columns:repeat(2,1fr)}.customRow{grid-template-columns:1fr}.qtyGrid{grid-template-columns:repeat(2,1fr)}button{min-height:58px}.quickPanel{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+      .stats{grid-template-columns:repeat(2,1fr)}
+    }
+    @media(max-width:520px){.top h1{font-size:1rem}.videoWrap{aspect-ratio:1/1}.qtyBox b{font-size:1.25rem}.partName{font-size:1.18rem}}
+    .stats.summaryStrip{grid-template-columns:repeat(4,1fr)}
+    @media(max-width:920px){.stats.summaryStrip{grid-template-columns:repeat(4,minmax(70px,1fr))}}
+
+
+    /* QOL layout refinements */
+    .actionBar{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .actionBar .miniAction{min-height:34px;border-radius:10px;padding:6px 9px;font-size:.72rem;line-height:1}
+    .itemCard h3,.orderRow h3{margin:0 0 4px;font-size:1rem;line-height:1.15}
+    .notesLine{margin-top:6px}
+    body.compact html{font-size:16px}
+    body.compact .itemCard h3, body.compact .orderRow h3{font-size:.9rem}
+    body.compact .miniQty{gap:6px}
+    body.compact .mini{padding:6px 8px;border-radius:10px}
+    body.compact .mini span{font-size:.58rem}
+    body.compact .mini b{font-size:.95rem}
+    body.compact .pill{padding:4px 8px;font-size:.66rem}
+    body.compact .actionBar .miniAction{min-height:30px;padding:5px 7px;font-size:.65rem}
+    body.listView .adminGrid{display:block}
+    body.listView .itemCard{display:grid;grid-template-columns:minmax(260px,1.3fr) minmax(260px,.9fr);gap:10px;align-items:center;padding:10px 12px;border-radius:14px}
+    body.listView .itemCard .miniQty{margin:0}
+    body.listView .itemCard .actionBar{grid-column:1/-1;margin-top:2px}
+    body.listView .itemCard h3{font-size:.92rem}
+    body.hideActions .itemCard .actionBar{display:none!important}
+    body.hideNotes .notesLine{display:none!important}
+    .settingsMenuActions.compactMenu button{min-height:42px}
+    .modalOverlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:140;display:grid;place-items:center;padding:18px}
+    .modalCard{width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:0 24px 90px rgba(15,23,42,.35);color:var(--ink)}
+    .modalHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+    .settingsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:10px;margin-top:10px}
+    .settingBlock{border:1px solid var(--line);border-radius:16px;background:#f8fafc;padding:12px}
+    body.dark .settingBlock{background:#0f172a;border-color:#334155}
+    details.orderRow{display:block;cursor:pointer}
+    details.orderRow summary{list-style:none}
+    details.orderRow summary::-webkit-details-marker{display:none}
+    .orderSummary{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+    .orderHint{font-size:.72rem;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+    .orderDetails{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+    .recommendBox{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0}
+    .recommendBox .mini{min-height:54px}
+    .orderDetails .actionBar .miniAction{min-height:36px}
+    .orderList .orderAmount{display:none}
+    .inlineInfo{font-size:.78rem;color:var(--muted);margin-top:6px}
+    @media(max-width:760px){body.listView .itemCard{grid-template-columns:1fr}.orderSummary{grid-template-columns:1fr}.orderHint{white-space:normal}}
+
+
+
+    /* Spotify-style admin shell */
+    body.adminMode > .top{display:none}
+    body.adminMode{background:#0b1220}
+    #adminPage.appShell{max-width:none;width:100%;margin:0;padding:0;min-height:100vh;background:linear-gradient(180deg,#101827 0,#0b1220 280px,#0b1220 100%);color:var(--ink)}
+    .spotifyLayout{display:grid;grid-template-columns:276px 1fr;min-height:100vh;gap:0}
+    .sideNav{position:sticky;top:0;height:100vh;background:#070b13;color:#e5e7eb;border-right:1px solid rgba(148,163,184,.18);padding:16px 12px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+    .accountBox{background:#111827;border:1px solid rgba(148,163,184,.18);border-radius:20px;padding:12px;box-shadow:0 16px 45px rgba(0,0,0,.18)}
+    .accountTop{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .avatar{width:42px;height:42px;border-radius:999px;background:linear-gradient(135deg,#22c55e,#2563eb);display:grid;place-items:center;font-weight:1000;color:white;letter-spacing:.03em;flex:0 0 auto}
+    .accountName{font-weight:1000;line-height:1.1}.accountRole{font-size:.72rem;color:#94a3b8;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+    .accountActions{display:grid;grid-template-columns:1fr;gap:8px}.accountActions button{min-height:36px;border-radius:12px;padding:6px 8px;font-size:.72rem}
+    .sideBrand{font-weight:1000;font-size:.92rem;color:#cbd5e1;text-transform:uppercase;letter-spacing:.08em;padding:0 8px}
+    .navList{display:grid;gap:6px}
+    .navBtn{display:flex;align-items:center;gap:12px;width:100%;min-height:46px;background:transparent;color:#cbd5e1;border-radius:14px;padding:10px 12px;font-weight:1000;justify-content:flex-start;text-align:left}
+    .navBtn:hover{background:#111827;color:white}.navBtn.active{background:#1d4ed8;color:white;box-shadow:0 10px 28px rgba(29,78,216,.32)}
+    .navIcon{width:22px;display:inline-grid;place-items:center;font-size:1rem}.navLabel{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .collapseBtn{margin-top:auto;width:100%;background:#111827;color:#e5e7eb;min-height:42px;border-radius:14px;padding:8px 10px;font-size:.82rem}
+    #adminPage.sidebarCollapsed .spotifyLayout{grid-template-columns:88px 1fr}
+    #adminPage.sidebarCollapsed .sideNav{padding:16px 10px;align-items:center}
+    #adminPage.sidebarCollapsed .accountBox{padding:10px;width:64px;overflow:hidden}
+    #adminPage.sidebarCollapsed .accountTop{justify-content:center;margin:0}#adminPage.sidebarCollapsed .accountName,#adminPage.sidebarCollapsed .accountRole,#adminPage.sidebarCollapsed .accountActions,#adminPage.sidebarCollapsed .sideBrand,#adminPage.sidebarCollapsed .navLabel,#adminPage.sidebarCollapsed .collapseText{display:none}
+    #adminPage.sidebarCollapsed .navBtn{justify-content:center;padding:10px;width:56px}.workspace{min-width:0;padding:0 18px 26px}
+    .workspaceTop{position:sticky;top:0;z-index:60;background:linear-gradient(180deg,rgba(16,24,39,.98),rgba(16,24,39,.9));backdrop-filter:blur(14px);padding:14px 0 12px;margin:0 0 14px;border-bottom:1px solid rgba(148,163,184,.12)}
+    .searchShell{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;align-items:start;max-width:1180px;margin:0 auto}
+    .searchBox{position:relative}.quickSearch{background:#f8fafc;border:0;box-shadow:0 14px 45px rgba(0,0,0,.18);min-height:48px;padding-left:16px}
+    .suggestionsBox{position:absolute;left:0;right:0;top:56px;background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 60px rgba(0,0,0,.28);overflow:hidden;z-index:80;max-height:360px;overflow-y:auto}
+    .suggestionItem{display:flex;justify-content:space-between;gap:12px;width:100%;background:transparent;color:var(--ink);border-radius:0;min-height:46px;padding:10px 12px;text-align:left;font-weight:800;border-bottom:1px solid var(--line)}
+    .suggestionItem:hover,.suggestionItem.active{background:#eff6ff}.suggestionItem span{display:block;color:var(--muted);font-size:.68rem;font-weight:800}.suggestionItem b{font-size:.86rem}
+    body.dark .suggestionItem:hover, body.dark .suggestionItem.active{background:#172554}
+    .filterDock{display:grid;grid-template-columns:160px 140px;gap:8px}.filterDock select{min-height:48px;border:0;box-shadow:0 12px 30px rgba(0,0,0,.13)}
+    .tinyStats{display:flex;gap:8px;flex-wrap:wrap;max-width:1180px;margin:10px auto 0}.tinyStat{background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.2);color:#e5e7eb;border-radius:999px;padding:7px 10px;font-weight:900;font-size:.72rem}.tinyStat b{margin-left:5px;color:white}
+    .viewPane{max-width:1180px;margin:0 auto}.viewTitleCard{background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:22px;padding:14px;margin-bottom:12px}.viewTitleCard h2{margin:0 0 4px}.viewTitleCard p{margin:0;color:var(--muted)}
+    body.dark .viewTitleCard{background:var(--card);border-color:var(--line)}
+    .tabs{display:none!important}.adminTop{display:none!important}.settingsMenu{display:none!important}
+    .itemCard,.adcCard,.orderRow,.pendingRow,.card{background:rgba(255,255,255,.96)}
+    body.compact .workspace{padding-left:12px;padding-right:12px}body.compact .itemCard, body.compact .adcCard, body.compact .orderRow, body.compact .pendingRow{padding:9px;border-radius:14px}body.compact .miniQty{margin:6px 0}body.compact .actionBar .miniAction{min-height:28px;font-size:.64rem;padding:4px 7px}
+    body.listView .adminGrid{display:grid;grid-template-columns:1fr;gap:6px}body.listView .itemCard{grid-template-columns:minmax(300px,1.4fr) minmax(260px,1fr) auto;border-radius:14px}.listView .itemCard .row{display:block}.listView .itemCard .actionBar{grid-column:auto;justify-content:flex-end}
+    .modalCard .dangerLine{border-color:#fecaca;background:#fff1f2}body.dark .modalCard .dangerLine{background:#2a1118;border-color:#7f1d1d}
+    .settingsNote{font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.35}
+    @media(max-width:920px){.spotifyLayout{grid-template-columns:1fr}.sideNav{position:sticky;top:0;height:auto;z-index:70;flex-direction:row;align-items:center;overflow:auto;padding:10px}.accountBox{min-width:170px}.sideBrand,.collapseBtn{display:none}.navList{display:flex;gap:6px}.navBtn{min-width:max-content}.workspace{padding:0 10px 20px}.searchShell{grid-template-columns:1fr}.filterDock{grid-template-columns:1fr 1fr}#adminPage.sidebarCollapsed .spotifyLayout{grid-template-columns:1fr}#adminPage.sidebarCollapsed .navLabel{display:inline}#adminPage.sidebarCollapsed .accountActions{display:grid}#adminPage.sidebarCollapsed .accountName,#adminPage.sidebarCollapsed .accountRole{display:block}}
+    @media(max-width:560px){.filterDock{grid-template-columns:1fr}.tinyStats{display:grid;grid-template-columns:repeat(2,1fr)}.tinyStat{border-radius:14px}.accountActions{grid-template-columns:1fr}.searchShell{gap:8px}.workspaceTop{padding-top:10px}}
+
+
+    /* Light-mode fixes for Spotify-style shell */
+    body.adminMode:not(.dark){background:#eef3f8;color:#0f172a}
+    body.adminMode:not(.dark) #adminPage.appShell{background:linear-gradient(180deg,#f8fafc 0,#eef3f8 280px,#eef3f8 100%);color:#0f172a}
+    body.adminMode:not(.dark) .sideNav{background:#ffffff;color:#0f172a;border-right:1px solid #d7dee9}
+    body.adminMode:not(.dark) .accountBox{background:#f8fafc;border-color:#d7dee9;box-shadow:0 10px 28px rgba(15,23,42,.06)}
+    body.adminMode:not(.dark) .accountName{color:#0f172a}
+    body.adminMode:not(.dark) .accountRole{color:#64748b}
+    body.adminMode:not(.dark) .sideBrand{color:#475569}
+    body.adminMode:not(.dark) .navBtn{color:#334155;background:transparent}
+    body.adminMode:not(.dark) .navBtn:hover{background:#e2e8f0;color:#0f172a}
+    body.adminMode:not(.dark) .navBtn.active{background:#1d4ed8;color:white}
+    body.adminMode:not(.dark) .collapseBtn{background:#e2e8f0;color:#0f172a}
+    body.adminMode:not(.dark) .workspaceTop{background:rgba(238,243,248,.96);border-bottom:1px solid #d7dee9}
+    body.adminMode:not(.dark) .tinyStat{background:#ffffff;border-color:#d7dee9;color:#475569}
+    body.adminMode:not(.dark) .tinyStat b{color:#0f172a}
+    body.adminMode:not(.dark) .quickSearch, body.adminMode:not(.dark) .filterDock select{background:#ffffff;color:#0f172a;border:1px solid #d7dee9;box-shadow:0 10px 28px rgba(15,23,42,.08)}
+    body.adminMode:not(.dark) .itemCard, body.adminMode:not(.dark) .adcCard, body.adminMode:not(.dark) .orderRow, body.adminMode:not(.dark) .pendingRow, body.adminMode:not(.dark) .card, body.adminMode:not(.dark) .viewTitleCard{background:#ffffff;color:#0f172a;border-color:#d7dee9}
+    body.adminMode:not(.dark) .mini, body.adminMode:not(.dark) .qtyBox, body.adminMode:not(.dark) .settingBlock{background:#f8fafc;color:#0f172a;border-color:#e2e8f0}
+
+
+    /* Copyable part-number chips + valve ordering modal */
+    .partNumberWrap{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+    .partNumberLabel{font-size:.62rem;font-weight:1000;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);width:100%}
+    .copyChip{display:inline-flex;align-items:center;gap:6px;min-height:30px;border-radius:999px;padding:5px 9px;background:#e0f2fe;color:#075985;border:1px solid #bae6fd;font-size:.68rem;font-weight:1000;line-height:1;max-width:100%;word-break:break-word}
+    .copyChip:hover{background:#bae6fd}
+    .copyAllChip{background:#dcfce7;color:#166534;border-color:#bbf7d0}
+    body.dark .copyChip{background:#0c4a6e;color:#e0f2fe;border-color:#0369a1}
+    body.dark .copyAllChip{background:#14532d;color:#dcfce7;border-color:#166534}
+    .valveOrderList{display:grid;gap:10px;margin:12px 0}
+    .valveOrderRow{display:grid;grid-template-columns:1fr minmax(260px,340px);gap:12px;align-items:start;border:1px solid var(--line);border-radius:16px;background:#f8fafc;padding:12px}
+    body.dark .valveOrderRow{background:#0f172a;border-color:#334155}
+    .valveOrderQty input{min-height:42px;padding:8px 10px;text-align:center;font-weight:1000}.valveOrderQtyGrid{display:grid;gap:8px}.valveOrderQtyLine{display:grid;grid-template-columns:1fr 76px;gap:8px;align-items:center}.valveOrderAddress{font-size:.7rem;font-weight:900;color:var(--muted);line-height:1.15}
+    .emailPreview{width:100%;min-height:220px;border:2px solid #cbd5e1;border-radius:16px;padding:12px;background:white;color:#0f172a;font:14px/1.45 Arial,Helvetica,sans-serif;resize:vertical}
+    body.dark .emailPreview{background:#0f172a;color:#e5e7eb;border-color:#475569}
+    .modalFoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px}
+    @media(max-width:620px){.valveOrderRow{grid-template-columns:1fr}.valveOrderQty{max-width:none}.valveOrderQtyLine{grid-template-columns:1fr 88px}}
+
+
+
+    /* QR implementation refinements */
+    .qrControls{display:grid;grid-template-columns:minmax(220px,1fr) 180px auto auto;gap:10px;align-items:end;margin-top:10px}
+    .qrSearchBox{position:relative}
+    .qrSearchInput{min-height:48px;background:#fff;color:#0f172a}
+    .qrHelper{margin-top:8px;color:var(--muted);font-size:.78rem;line-height:1.35}
+    .qrPairCard{background:#ffffff;border:1px solid var(--line);border-radius:20px;padding:12px;break-inside:avoid;box-shadow:0 3px 14px rgba(15,23,42,.06)}
+    .qrPairHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+    .qrPairHead h3{margin:0;font-size:.98rem;line-height:1.15}
+    .qrPairHead .small{margin-top:3px}
+    .qrPairLabels{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .qrLabel.qrNorth{border-color:#1d4ed8;background:linear-gradient(180deg,#eff6ff,#ffffff)}
+    .qrLabel.qrSouth{border-color:#16a34a;background:linear-gradient(180deg,#f0fdf4,#ffffff)}
+    .qrLabel .locBanner{display:flex;align-items:center;justify-content:space-between;gap:8px;border-radius:12px;padding:7px 9px;color:white;font-weight:1000;margin-bottom:8px}
+    .qrLabel.qrNorth .locBanner{background:#1d4ed8}.qrLabel.qrSouth .locBanner{background:#16a34a}
+    .qrLocBig{font-size:1.25rem;letter-spacing:.08em}.qrAddress{font-size:.62rem;line-height:1.15;text-align:right;font-weight:800;max-width:135px}
+    .qrQtyLine{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}.qrQtyLine .mini{min-width:0;padding:6px;border-radius:10px;background:#f8fafc}
+    .qrQtyLine .mini b{font-size:.95rem}.qrOtherBlank{font-size:.68rem;font-weight:1000;border-radius:999px;padding:4px 8px;background:#fee2e2;color:#991b1b;display:inline-flex;margin-top:4px}
+    .qrLinkedNote{font-size:.66rem;color:#64748b;line-height:1.25;margin-top:5px}
+    .scanLocationNote{background:#f8fafc;border:1px solid #dbe4ef;border-radius:16px;padding:10px;margin:10px 0;color:#0f172a;font-weight:800;line-height:1.35}
+    body.dark .qrPairCard, body.dark .qrLabel{background:var(--card);border-color:var(--line);color:var(--ink)}
+    body.dark .qrLabel.qrNorth{background:linear-gradient(180deg,#172554,#0f172a);border-color:#2563eb}
+    body.dark .qrLabel.qrSouth{background:linear-gradient(180deg,#14532d,#0f172a);border-color:#16a34a}
+    body.dark .qrSearchInput{background:#0f172a;color:#e5e7eb;border-color:#334155}
+    body.dark .scanLocationNote{background:#0f172a;border-color:#334155;color:#e5e7eb}
+    @media(max-width:760px){.qrControls{grid-template-columns:1fr}.qrPairLabels{grid-template-columns:1fr}.qrLabel img{width:170px;height:170px}.qrAddress{max-width:none}.qrLocBig{font-size:1.1rem}}
+    @media print{.qrControls,.qrHelper,.viewTitleCard p{display:none!important}.qrPairCard{box-shadow:none;border:0;padding:0;margin-bottom:12px}.qrPairLabels{grid-template-columns:1fr 1fr}.qrLabel{page-break-inside:avoid}}
+
+    @media print{.top,.wrap>.card,.scannerCard,.tabs,.noPrint,.quickPanel,.toast,.stats,.sideNav,.workspaceTop{display:none!important}body{background:white}.spotifyLayout{display:block}.viewPane{max-width:none}.qrGrid{grid-template-columns:repeat(3,1fr)}.qrLabel{page-break-inside:avoid}}
+
+    /* QR layout cleanup: paired North/South labels no longer overflow inside small grid cells */
+    #qrLabels.qrGrid{grid-template-columns:repeat(auto-fill,minmax(min(100%,620px),1fr));gap:16px;align-items:start}
+    .qrPairCard{width:100%;max-width:100%;overflow:hidden}
+    .qrPairLabels{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%}
+    .qrLabel{width:100%;max-width:100%;min-width:0;overflow:hidden;padding:10px}
+    .qrLabel h3{font-size:.82rem;line-height:1.15;overflow-wrap:anywhere}
+    .qrLabel img{width:min(170px,100%);height:auto;aspect-ratio:1/1}
+    .qrLabel .locBanner{display:block;text-align:center;padding:7px 8px}
+    .qrLocBig{display:block;font-size:1.15rem;letter-spacing:.08em;line-height:1}
+    .qrAddress{display:block;max-width:none;text-align:center;font-size:.52rem;line-height:1.1;margin-top:3px;overflow-wrap:anywhere}
+    .qrLabel .partNumberWrap{justify-content:center;gap:4px;margin-top:6px}
+    .qrLabel .partNumberLabel{font-size:.56rem;text-align:center}
+    .qrLabel .copyChip{font-size:.56rem;min-height:24px;padding:3px 6px;max-width:100%;white-space:normal;justify-content:center}
+    .qrLabel .qrQtyLine{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .qrLabel .small,.qrLinkedNote{overflow-wrap:anywhere}
+    @media(max-width:860px){#qrLabels.qrGrid{grid-template-columns:1fr}.qrPairLabels{grid-template-columns:1fr}.qrLabel img{width:min(190px,100%)}}
+    @media print{#qrLabels.qrGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.qrPairLabels{grid-template-columns:1fr 1fr}.qrLabel img{width:160px}}
+
+  </style>
+</head>
+<body>
+  <div class="top">
+    <h1>Shop Inventory QR System</h1>
+    <p id="topSub">Sign in to continue.</p>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <section id="loginPage" class="centerWrap">
+    <div class="card loginCard">
+      <h2>Sign In</h2>
+      <p>Enter initials. Admin: <b>RML</b> or <b>JPM</b>. Tech scanner: <b>TECH</b>.</p>
+      <label>Initials</label>
+      <input id="loginInitials" placeholder="RML, JPM, or TECH" autocomplete="off" onkeydown="if(event.key==='Enter') login()">
+      <div style="height:12px"></div>
+      <button class="btn-primary" style="width:100%" onclick="login()">Continue</button>
+      <div style="height:12px"></div>
+      <div class="small">Admin sees inventory overview, change log, QR labels, and order list. Tech only sees the scanner and the scanned item controls.</div>
+    </div>
+  </section>
+
+  <section id="techPage" class="scannerOnly hidden">
+    <section class="scannerCard">
+      <div class="scanHeader">
+        <div><b>Live QR Scanner</b><br><span id="scannerMode">Camera off</span></div>
+        <span id="scannerState" class="pill neutral">READY</span>
+      </div>
+      <div class="videoWrap">
+        <video id="video" playsinline muted></video>
+        <div class="scanBox"></div>
+        <div class="scanLine"></div>
+      </div>
+      <div class="scanControls">
+        <div class="row">
+          <div class="grow">
+            <label style="color:#bfdbfe">Location</label>
+            <select id="activeLocation"><option value="North">North</option><option value="South">South</option></select>
+          </div>
+        </div>
+        <button id="startBtn" class="btn-green bigStart" onclick="startScanner()">START SCANNER</button>
+        <button id="stopBtn" class="btn-light hidden" onclick="stopScanner()">Stop Camera</button>
+        <label style="color:#dbeafe;display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0">
+          <input id="autoContinue" type="checkbox" checked style="width:22px;min-height:22px"> Auto-close after update
+        </label>
+      </div>
+      <div class="statusBar" id="scanMessage">Press START SCANNER, then scan the QR code on the parts container.</div>
+    </section>
+    <div class="card noPrint">
+      <button class="btn-light" style="width:100%" onclick="logout()">Log Out</button>
+    </div>
+  </section>
+
+  <section id="adminPage" class="appShell hidden">
+    <div class="spotifyLayout">
+      <aside class="sideNav noPrint">
+        <div class="accountBox">
+          <div class="accountTop">
+            <div class="avatar" id="accountAvatar">RL</div>
+            <div>
+              <div class="accountName" id="accountName">Account</div>
+              <div class="accountRole" id="accountRole">Admin</div>
+            </div>
+          </div>
+          <div class="accountActions">
+            <button class="btn-light" onclick="logout()">Logout</button>
+          </div>
+        </div>
+        <div class="sideBrand">Inventory</div>
+        <nav class="navList">
+          <button id="navParts" class="navBtn active" onclick="showAdminView('parts')"><span class="navIcon">📦</span><span class="navLabel">Parts</span></button>
+          <button id="navPending" class="navBtn" onclick="showAdminView('pending')"><span class="navIcon">⏳</span><span class="navLabel">Pending Orders</span></button>
+          <button id="navChangelog" class="navBtn" onclick="showAdminView('changelog')"><span class="navIcon">🕘</span><span class="navLabel">Changelog</span></button>
+          <button id="navOrder" class="navBtn" onclick="showAdminView('order')"><span class="navIcon">🛒</span><span class="navLabel">Order List</span></button>
+          <button id="navQr" class="navBtn" onclick="showAdminView('qr')"><span class="navIcon">▦</span><span class="navLabel">QR Labels</span></button>
+          <button id="navSettings" class="navBtn" onclick="openSettingsModal()"><span class="navIcon">⚙️</span><span class="navLabel">Settings</span></button>
+        </nav>
+        <button class="collapseBtn" onclick="toggleSidebar()"><span class="collapseText">Collapse sidebar</span><span class="navIcon">⇤</span></button>
+      </aside>
+
+      <main class="workspace">
+        <div class="workspaceTop noPrint">
+          <div class="searchShell">
+            <div class="searchBox">
+              <input id="search" class="quickSearch" placeholder="Search parts, part numbers, categories, notes..." autocomplete="off" oninput="renderAdmin(); renderSearchSuggestions()" onfocus="renderSearchSuggestions()">
+              <div id="searchSuggestions" class="suggestionsBox hidden"></div>
+            </div>
+            <div class="filterDock">
+              <select id="categoryFilter" onchange="renderAdmin(); renderSearchSuggestions()"><option value="">All categories</option></select>
+              <select id="statusFilter" onchange="renderAdmin(); renderSearchSuggestions()"><option value="">All status</option><option value="OUT">Out</option><option value="LOW">Low</option><option value="AT">At reorder</option><option value="OK">OK</option></select>
+            </div>
+          </div>
+          <div class="tinyStats">
+            <div class="tinyStat">Inventory Lines <b id="statLines">0</b></div>
+            <div class="tinyStat">Need Ordering <b id="statNeed">0</b></div>
+            <div class="tinyStat">Out of Stock <b id="statOut">0</b></div>
+            <div class="tinyStat">Logged Changes <b id="statChanges">0</b></div>
+          </div>
+        </div>
+
+        <section id="overviewView" class="viewPane hidden">
+          <div class="viewTitleCard">
+            <h2>Overview</h2>
+            <p>Quick snapshot of the inventory lines that need attention. Use Changelog for what was added or taken.</p>
+          </div>
+          <div id="overviewCards" class="adminGrid"></div>
+        </section>
+
+        <section id="partsView" class="viewPane">
+          <div id="partsCards" class="adminGrid"></div>
+        </section>
+
+        <section id="adcView" class="viewPane hidden">
+          <div class="viewTitleCard">
+            <h2>AD Check</h2>
+            <p>Recurring AutomationDirect purchases only. Verify bin counts, adjust stock, and mark inventory checked.</p>
+          </div>
+          <div id="adcCards" class="adcGrid"></div>
+        </section>
+
+        <section id="pendingView" class="viewPane hidden">
+          <div class="viewTitleCard">
+            <h2>Pending Orders</h2>
+            <p>Orders waiting to arrive. Receive to North or South when stock comes in.</p>
+          </div>
+          <div id="pendingRows" class="pendingGrid"></div>
+        </section>
+
+        <section id="changelogView" class="viewPane card hidden">
+          <h2 style="margin-top:0">Changelog / What Techs Took</h2>
+          <table><thead><tr><th>Time</th><th>Tech</th><th>Action</th><th>Part</th><th>Location</th><th>Qty</th><th>Before</th><th>After</th></tr></thead><tbody id="logRows"></tbody></table>
+        </section>
+
+        <section id="orderView" class="viewPane hidden">
+          <div class="viewTitleCard">
+            <h2>Order List</h2>
+            <p>Reorder math uses overall stock by default: North + South together. Tap an item to see recommended amount, max, pending orders, and receive/order actions.</p>
+            <div class="orderButtonGrid">
+              <button class="btn-dark orderGroupBtn active" id="grp_all" onclick="setOrderGroup('all')">All Parts</button>
+              <button class="btn-primary orderGroupBtn" id="grp_electrical" onclick="setOrderGroup('electrical')">Electrical</button>
+              <button class="btn-primary orderGroupBtn" id="grp_hydraulic" onclick="setOrderGroup('hydraulic')">Hydraulic</button>
+              <button class="btn-primary orderGroupBtn" id="grp_valves" onclick="setOrderGroup('valves')">Valves</button>
+              <button class="btn-primary orderGroupBtn" id="grp_fittings" onclick="setOrderGroup('fittings')">Fittings / Hoses / Seals</button>
+              <button class="btn-primary orderGroupBtn" id="grp_relief" onclick="setOrderGroup('relief')">Relief Cartridges</button>
+              <button class="btn-primary orderGroupBtn" id="grp_hardware" onclick="setOrderGroup('hardware')">Hardware</button>
+              <button class="btn-primary orderGroupBtn" id="grp_adcheck" onclick="setOrderGroup('adcheck')">AD Check</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row" style="justify-content:space-between;align-items:flex-end">
+              <div>
+                <h2 style="margin:0" id="orderGroupTitle">All Parts</h2>
+                <div class="muted" id="orderGroupSub">Low and out-of-stock items are highlighted.</div>
+              </div>
+              <div style="min-width:220px">
+                <label>Sort</label>
+                <select id="orderSort" onchange="renderOrderView()">
+                  <option value="status">Need reorder first</option>
+                  <option value="name">Name A-Z</option>
+                  <option value="northLow">North amount low-high</option>
+                  <option value="southLow">South amount low-high</option>
+                  <option value="orderHigh">Order amount high-low</option>
+                </select>
+              </div>
+            </div>
+            <div id="vendorActions" class="vendorActions"></div>
+          </div>
+
+          <div id="orderCards" class="orderList"></div>
+        </section>
+
+        <section id="qrView" class="viewPane hidden">
+          <div class="viewTitleCard noPrint">
+            <h2>QR Labels</h2>
+            <p>Search parts, generate linked North/South labels, and scan them from a phone. Each label opens the same part while keeping the scanned location clear.</p>
+            <div class="qrControls">
+              <div class="qrSearchBox">
+                <label>QR label search</label>
+                <input id="qrSearch" class="qrSearchInput" placeholder="Search part name, part number, ID, category..." autocomplete="off" oninput="renderQrLabels()">
+              </div>
+              <div>
+                <label>Label set</label>
+                <select id="qrLocation" onchange="renderQrLabels()">
+                  <option value="Both">Linked North + South</option>
+                  <option value="North">North only</option>
+                  <option value="South">South only</option>
+                </select>
+              </div>
+              <button class="btn-primary" onclick="renderQrLabels()">Generate</button>
+              <button class="btn-green" onclick="window.print()">Print</button>
+            </div>
+            <div class="qrHelper">North and South labels are visually different, but they stay linked to the same part ID. When a tech scans one, they can still switch the update location before adding or taking stock.</div>
+          </div>
+          <div id="qrLabels" class="qrGrid"></div>
+        </section>
+      </main>
+    </div>
+
+
+
+    <div id="valveEmailModal" class="modalOverlay hidden noPrint">
+      <div class="modalCard">
+        <div class="modalHead">
+          <div>
+            <h2 style="margin:0">Valve Order Email</h2>
+            <div class="small">All valve items are shown. Enter quantities for each address, then copy or open Gmail. The email groups items by delivery address.</div>
+          </div>
+          <button class="btn-light" onclick="closeValveOrderModal()" style="min-height:42px">✕</button>
+        </div>
+        <div id="valveOrderItems" class="valveOrderList"></div>
+        <label>Email preview</label>
+        <textarea id="valveEmailPreview" class="emailPreview"></textarea>
+        <div class="modalFoot">
+          <button class="btn-light" onclick="copyValveEmail()">Copy Email</button>
+          <button class="btn-green" onclick="openValveEmail()">Open Gmail to Dale</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsModal" class="modalOverlay hidden noPrint">
+      <div class="modalCard">
+        <div class="modalHead">
+          <div>
+            <h2 style="margin:0">Settings</h2>
+            <div class="small">Settings are saved to the signed-in account on this device.</div>
+          </div>
+          <button class="miniIcon" onclick="closeSettingsModal()">×</button>
+        </div>
+        <div class="settingsGrid">
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">Appearance</h3>
+            <label class="toggleLine"><span>Dark mode</span><input id="darkToggle" type="checkbox" onchange="setTheme(this.checked?'dark':'light')"></label>
+            <label class="toggleLine"><span>Compact mode</span><input id="compactToggle" type="checkbox" onchange="setCompactMode(this.checked)"></label>
+            <label class="toggleLine"><span>List view</span><input id="listToggle" type="checkbox" onchange="setListMode(this.checked)"></label>
+          </div>
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">Clean Viewing</h3>
+            <label class="toggleLine"><span>Hide card action buttons</span><input id="hideActionsToggle" type="checkbox" onchange="setHideActions(this.checked)"></label>
+            <label class="toggleLine"><span>Hide notes on inventory cards</span><input id="hideNotesToggle" type="checkbox" onchange="setHideNotes(this.checked)"></label>
+            <div class="settingsNote">Use this when you only want to check quantities and order status without extra clutter.</div>
+          </div>
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">Account</h3>
+            <div class="small"><b>Signed in:</b> <span id="settingsAccountName">Admin</span></div>
+            <label style="margin-top:10px">Default scan location</label>
+            <select id="defaultLocationSetting" onchange="setDefaultLocation(this.value)"><option value="North">North</option><option value="South">South</option></select>
+            <div class="settingsNote"><b>North:</b> 111 Reed Rd, West Palm Beach, FL 33403<br><b>South:</b> 1770 SW 13th Ct, Pompano Beach, FL 33069</div>
+          </div>
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">QR Labels</h3>
+            <label>Hosted site URL</label>
+            <input id="baseUrl" placeholder="https://yourcompany.com/inventory.html">
+            <div style="height:8px"></div>
+            <button class="btn-primary" onclick="saveBaseUrl()">Save QR URL</button>
+            <div class="settingsNote">Used when generating scannable QR labels.</div>
+          </div>
+          <div class="settingBlock">
+            <h3 style="margin:0 0 8px">Exports</h3>
+            <div class="actionBar">
+              <button class="btn-yellow miniAction" onclick="downloadOrderCSV()">Order CSV</button>
+              <button class="btn-light miniAction" onclick="downloadAllCSV()">Inventory CSV</button>
+              <button class="btn-light miniAction" onclick="exportJSON()">Backup JSON</button>
+            </div>
+          </div>
+          <div class="settingBlock dangerLine">
+            <h3 style="margin:0 0 8px">Reset / Data</h3>
+            <input class="hidden" type="file" id="importFile" accept=".json" onchange="importJSON(event)">
+            <div class="actionBar">
+              <button class="btn-light miniAction" onclick="document.getElementById('importFile').click()">Import Backup</button>
+              <button class="btn-light miniAction" onclick="resetUiDefaults()">Reset UI Defaults</button>
+              <button class="btn-red miniAction" onclick="resetData()">Reset Inventory</button>
+            </div>
+            <div class="settingsNote">Reset UI Defaults only resets layout/theme settings for this account. Reset Inventory clears inventory/log data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <div id="quickPanel" class="quickPanel">
+    <div class="panelHandle"></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="small" id="panelCat">Category</div>
+        <h2 class="partName" id="panelName">Part Name</h2>
+        <div class="small" id="panelId">ID</div>
+      </div>
+      <div id="panelStatus" class="pill neutral">STATUS</div>
+    </div>
+    <div class="adjustingNow" id="adjustingNow">Adjusting this part</div>
+    <div class="qtyGrid">
+      <div class="qtyBox"><span>North</span><b id="panelNorth">0</b></div>
+      <div class="qtyBox"><span>South</span><b id="panelSouth">0</b></div>
+    </div>
+    <div id="scanLocationNote" class="scanLocationNote">Scan location will show here.</div>
+    <label>Location to update</label>
+    <select id="panelLocation" onchange="refreshPanel()"><option value="North">North</option><option value="South">South</option></select>
+    <div id="lastAction" class="lastAction">Tap a button below to update this part.</div>
+    <label>Parts taken</label>
+    <div class="fastGrid">
+      <button class="take" onclick="quickChange(-1)">−1</button>
+      <button class="take" onclick="quickChange(-2)">−2</button>
+      <button class="take" onclick="quickChange(-5)">−5</button>
+      <button class="take" onclick="quickChange(-10)">−10</button>
+    </div>
+    <label>Returned or restocked</label>
+    <div class="fastGrid">
+      <button class="add" onclick="quickChange(1)">+1</button>
+      <button class="add" onclick="quickChange(2)">+2</button>
+      <button class="add" onclick="quickChange(5)">+5</button>
+      <button class="add" onclick="quickChange(10)">+10</button>
+    </div>
+    <label>Custom quantity</label>
+    <input id="customQty" type="number" min="0" step="1" value="1">
+    <div style="height:8px"></div>
+    <div class="customRow">
+      <button class="btn-red" onclick="customTake()">Take Custom</button>
+      <button class="btn-green" onclick="customAdd()">Add Custom</button>
+      <button class="btn-yellow" onclick="setExact()">Set Exact</button>
+    </div>
+    <div style="height:10px"></div>
+    <button class="btn-dark" style="width:100%" onclick="closePanel()">Close / Scan Next</button>
+  </div>
+
+<script>
+const STARTER_ITEMS = [{"id":"motor-starter-40a","category":"Electrical","subcategory":"Motor Controls","name":"Motor Starter 40A","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":4,"max":10,"condition":"Good","notes":"HMC 40A30-22 | ADC stocked part HMC-40A30-22-AS; purchased 34 over history.","adcItems":[{"code":"HMC-40A30-22-AS","description":"IronHorse IEC contactor, 40A, (3) N.O. power poles, (2) N.O./(2) N.C. auxiliary contacts, 120 VAC (50/60Hz) coil voltage.","historyQty":34,"historyAmount":2346.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"motor-starter-40a","stocked":true}],"checkInventory":true},{"id":"overload-18-23a","category":"Electrical","subcategory":"Motor Controls","name":"Overload 18-23A","unit":"ea","northQty":0,"southQty":9,"originalQtyText":"9","reorder":4,"max":10,"condition":"Good","notes":"WEG 18-23A | ADC stocked part HTOR32-22-S; purchased 34 over history.","adcItems":[{"code":"HTOR32-22-S","description":"IronHorse HTOR series thermal overload relay, 16-22A adjustable, bi-metallic, local reset, direct mount power connection(s). For use with HMC-9 to HMC-40 series contactors.","historyQty":34,"historyAmount":941.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"overload-18-23a","stocked":true}],"checkInventory":true},{"id":"overload-22-32a","category":"Electrical","subcategory":"Motor Controls","name":"Overload 22-32A","unit":"ea","northQty":7,"southQty":10,"originalQtyText":"10","reorder":4,"max":10,"condition":"North Count","notes":"WEG 22-32A | ADC stocked part HTOR32-32-S; purchased 42 over history. | North count: 03-47-63 motor starter overload 23-32A.","adcItems":[{"code":"HTOR32-32-S","description":"IronHorse HTOR series thermal overload relay, 22-32A adjustable, bi-metallic, local reset, direct mount power connection(s). For use with HMC-9 to HMC-40 series contactors.","historyQty":42,"historyAmount":1197.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"overload-22-32a","stocked":true}],"checkInventory":true},{"id":"limit-switch-adjustable-rod-style","category":"Electrical","subcategory":"Limit Switches","name":"Limit Switch Adjustable / Rod Style","unit":"ea","northQty":0,"southQty":7,"originalQtyText":"7","reorder":8,"max":"","condition":"Good","notes":"Rod counted under adjustable"},{"id":"limit-switch-gb-mini-roller","category":"Electrical","subcategory":"Limit Switches","name":"Limit Switch GB Mini Roller","unit":"ea","northQty":0,"southQty":13,"originalQtyText":"13","reorder":10,"max":8,"condition":"Good","notes":"Original max may be incorrect"},{"id":"limit-switch-roller-arm","category":"Electrical","subcategory":"Limit Switches","name":"Limit Switch Roller Arm","unit":"ea","northQty":8,"southQty":12,"originalQtyText":"12","reorder":6,"max":"","condition":"North Count","notes":"North count: IMO LDC5A35 roller lever limit switch."},{"id":"limit-switch-whisker","category":"Electrical","subcategory":"Limit Switches","name":"Limit Switch Whisker","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":6,"max":"","condition":"Good","notes":"Corrected to 4"},{"id":"limit-switch-plunger-gb","category":"Electrical","subcategory":"Limit Switches","name":"Limit Switch Plunger GB","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":4,"max":10,"condition":"Good","notes":"Original max noted 10:15"},{"id":"30mm-emergency-stop-push-pull-e-stop","category":"Electrical","subcategory":"30mm Controls","name":"30mm Emergency Stop / Push-Pull E-Stop","unit":"ea","northQty":0,"southQty":13,"originalQtyText":"13","reorder":10,"max":"","condition":"Good","notes":""},{"id":"30mm-spring-return","category":"Electrical","subcategory":"30mm Controls","name":"30mm Spring Return","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":10,"max":"","condition":"Good","notes":"LOW"},{"id":"30mm-maintained-2p-switch","category":"Electrical","subcategory":"30mm Controls","name":"30mm Maintained 2P Switch","unit":"ea","northQty":0,"southQty":19,"originalQtyText":"19","reorder":10,"max":"","condition":"Good","notes":""},{"id":"30mm-green-push-button","category":"Electrical","subcategory":"30mm Controls","name":"30mm Green Push Button","unit":"ea","northQty":6,"southQty":17,"originalQtyText":"17","reorder":10,"max":"","condition":"North Count","notes":"North count: WEG CSW30-BF2 30mm green flush pushbutton."},{"id":"30mm-black-push-button","category":"Electrical","subcategory":"30mm Controls","name":"30mm Black Push Button","unit":"ea","northQty":7,"southQty":16,"originalQtyText":"16","reorder":10,"max":"","condition":"North Count","notes":"North count: WEG CSW30-BF5 30mm black flush pushbutton."},{"id":"30mm-green-no-contact","category":"Electrical","subcategory":"30mm Controls","name":"30mm Green NO Contact","unit":"ea","northQty":26,"southQty":19,"originalQtyText":"19","reorder":40,"max":"","condition":"North Count","notes":"Normally open contacts | North count: WEG BC10-CSW30 30mm NO contact block."},{"id":"30mm-red-nc-contact","category":"Electrical","subcategory":"30mm Controls","name":"30mm Red NC Contact","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":10,"max":"","condition":"Good","notes":"Normally closed contacts"},{"id":"22mm-spring-return","category":"Electrical","subcategory":"22mm Controls","name":"22mm Spring Return","unit":"ea","northQty":2,"southQty":54,"originalQtyText":"54","reorder":20,"max":"","condition":"North Count","notes":"ADC stocked part GCX1430; purchased 58 over history. | North count: GCX1430 22mm 2-position spring return key switch.","adcItems":[{"code":"GCX1430","description":"AutomationDirect selector switch, 22mm, 2-position, spring return from right, key removable left position, (1) N.O. contact(s), metal base, metal bezel, Operator: black, key, 30mm, round, plastic.","historyQty":58,"historyAmount":1356.0,"orderCount":5,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"22mm-spring-return","stocked":true}],"checkInventory":true},{"id":"22mm-maintained","category":"Electrical","subcategory":"22mm Controls","name":"22mm Maintained","unit":"ea","northQty":0,"southQty":10,"originalQtyText":"10","reorder":20,"max":"","condition":"Original Count","notes":"Not recounted after original list"},{"id":"22mm-emergency-stop","category":"Electrical","subcategory":"22mm Controls","name":"22mm Emergency Stop","unit":"ea","northQty":3,"southQty":36,"originalQtyText":"36","reorder":20,"max":"","condition":"North Count","notes":"ADC stocked part GCX1131; purchased 82 over history. | North count: 22mm twist-release E-stop.","adcItems":[{"code":"GCX1131","description":"AutomationDirect emergency stop pushbutton, IP65, 22mm, twist-to-release, (1) N.C. contact(s), metal base, metal bezel, Operator: red, mushroom, 40mm, round, plastic.","historyQty":82,"historyAmount":1435.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"22mm-emergency-stop","stocked":true}],"checkInventory":true},{"id":"22mm-2p-selector-key-maintained","category":"Electrical","subcategory":"22mm Controls","name":"22mm 2P Selector / Key Maintained","unit":"ea","northQty":3,"southQty":45,"originalQtyText":"45","reorder":10,"max":"","condition":"North Count","notes":"ADC stocked part GCX1420; purchased 58 over history. | North count: GCX-14-20 22mm 2-position maintained selector/key switch.","adcItems":[{"code":"GCX1420","description":"AutomationDirect selector switch, 22mm, 2-position, maintained, key removable in all positions, (1) N.O. contact(s), metal base, metal bezel, Operator: black, key, 30mm, round, plastic.","historyQty":58,"historyAmount":1392.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"22mm-2p-selector-key-maintained","stocked":true}],"checkInventory":true},{"id":"22mm-green-push-button","category":"Electrical","subcategory":"22mm Controls","name":"22mm Green Push Button","unit":"ea","northQty":7,"southQty":40,"originalQtyText":"40","reorder":10,"max":"","condition":"North Count","notes":"ADC stocked part GCX1102; purchased 42 over history. | North count: 22mm green push button / start button.","adcItems":[{"code":"GCX1102","description":"AutomationDirect pushbutton, IP65, 22mm, momentary, (1) N.O. contact(s), metal base, metal bezel, Operator: green, flush, 30mm, round, plastic.","historyQty":42,"historyAmount":378.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"22mm-green-push-button","stocked":true}],"checkInventory":true},{"id":"22mm-black-push-button","category":"Electrical","subcategory":"22mm Controls","name":"22mm Black Push Button","unit":"ea","northQty":0,"southQty":24,"originalQtyText":"24","reorder":10,"max":"","condition":"Good","notes":""},{"id":"22mm-red-indicator-light","category":"Electrical","subcategory":"22mm Indicators","name":"22mm Red Indicator Light","unit":"ea","northQty":0,"southQty":21,"originalQtyText":"21","reorder":10,"max":"","condition":"Good","notes":"110V red indicator"},{"id":"22mm-green-indicator-light","category":"Electrical","subcategory":"22mm Indicators","name":"22mm Green Indicator Light","unit":"ea","northQty":0,"southQty":32,"originalQtyText":"32","reorder":10,"max":"","condition":"Good","notes":""},{"id":"gcx-1470-22mm-key","category":"Electrical","subcategory":"22mm Controls","name":"GCX 1470 .22mm Key","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Original Count","notes":"Not updated | ADC stocked part ECX1067-2; purchased 3 over history. | ADC stocked part GCX1470-22; purchased 2 over history.","adcItems":[{"code":"ECX1067-2","description":"AutomationDirect key, replacement, metal. Package of 4. For use with GCX series selector switches with key actuation.","historyQty":3,"historyAmount":23.25,"orderCount":1,"lastDate":"2025-10-23","lastPO":"stock-2025-10-22 21:16:05","matchedItemId":"gcx-1470-22mm-key","stocked":true},{"code":"GCX1470-22","description":"AutomationDirect selector switch, 22mm, 3-position, maintained, key removable in all positions, (2) N.O./(2) N.C. contact(s), metal base, metal bezel, Operator: black, key, 30mm, round, plastic.","historyQty":2,"historyAmount":69.0,"orderCount":1,"lastDate":"2025-11-04","lastPO":"Nordstrom Aventura 774","matchedItemId":"gcx-1470-22mm-key","stocked":true}],"checkInventory":true},{"id":"transformer","category":"Electrical","subcategory":"Power / Sensors","name":"Transformer","unit":"ea","northQty":2,"southQty":10,"originalQtyText":"10","reorder":8,"max":"","condition":"North Count","notes":"Not updated | North count: 03-03-62 Edwards 529 transformer."},{"id":"proximity-switch","category":"Electrical","subcategory":"Sensors","name":"Proximity Switch","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":8,"max":"","condition":"Good","notes":"PROC/prox switch"},{"id":"interlock","category":"Electrical","subcategory":"Safety Interlocks","name":"Interlock","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":10,"max":30,"condition":"Out of Stock","notes":"Location was empty"},{"id":"armored-magnetic-interlock-long","category":"Electrical","subcategory":"Safety Interlocks","name":"Armored Magnetic Interlock - Long","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":"","max":"","condition":"Found Separate","notes":""},{"id":"armored-magnetic-interlock-short","category":"Electrical","subcategory":"Safety Interlocks","name":"Armored Magnetic Interlock - Short","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":"","max":"","condition":"Found Separate","notes":""},{"id":"plastic-magnetic-interlock-long","category":"Electrical","subcategory":"Safety Interlocks","name":"Plastic Magnetic Interlock - Long","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":"","max":"","condition":"Found Separate","notes":""},{"id":"plastic-magnetic-interlock-short","category":"Electrical","subcategory":"Safety Interlocks","name":"Plastic Magnetic Interlock - Short","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":"","max":"","condition":"Found Separate","notes":""},{"id":"hauler-light-vip","category":"Electrical","subcategory":"Lighting / Signals","name":"Hauler Light VIP","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":4,"max":16,"condition":"Original Count","notes":"Not updated"},{"id":"photo-eye-reflective","category":"Electrical","subcategory":"Sensors","name":"Photo Eye Reflective","unit":"ea","northQty":3,"southQty":1,"originalQtyText":"1","reorder":2,"max":4,"condition":"North Count","notes":"ADC stocked part 1451E-6514; purchased 2 over history. | North count: E3K photo eye with built-in resistor.","adcItems":[{"code":"1451E-6514","description":"Eaton photoelectric sensor, rectangular, polarized retroreflective, visible red, 16ft sensing distance, selectable light-on/dark-on, SPDT EM relay, potentiometer, 5-wire, pigtail.","historyQty":2,"historyAmount":306.0,"orderCount":1,"lastDate":"2026-01-29","lastPO":"WG15994-WG4178","matchedItemId":"photo-eye-reflective","stocked":true}],"checkInventory":true},{"id":"harting-plug-assembly","category":"Electrical","subcategory":"Connectors","name":"Harting Plug Assembly","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":4,"max":8,"condition":"Good","notes":""},{"id":"cordgrips","category":"Electrical","subcategory":"Connectors","name":"Cordgrips","unit":"ea","northQty":34,"southQty":100,"originalQtyText":"100","reorder":20,"max":100,"condition":"North Count","notes":"Not updated | North count breakdown: 10 black IMO AC-GPG13-1/2NPT cordgrips + 24 gray cordgrips."},{"id":"green-led-strobe-50mm-green-light-module","category":"Electrical","subcategory":"Lighting / Signals","name":"Green LED Strobe / 50mm Green Light Module","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":4,"max":8,"condition":"Good","notes":"ADC stocked part DR30D0L-L9GZC; purchased 2 over history.","adcItems":[{"code":"DR30D0L-L9GZC","description":"Fuji Electric LED indicating light, permanent light function, 30mm, green, 41mm, dome, plastic base, metal bezel, 115-127 VAC, transformer.","historyQty":2,"historyAmount":80.0,"orderCount":1,"lastDate":"2026-05-05","lastPO":"Whole Foods 10529","matchedItemId":"green-led-strobe-50mm-green-light-module","stocked":true}],"checkInventory":true},{"id":"red-led-strobe-50mm-red-light-module","category":"Electrical","subcategory":"Lighting / Signals","name":"Red LED Strobe / 50mm Red Light Module","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":4,"max":8,"condition":"Good","notes":""},{"id":"50mm-wiring-base-strobe-base","category":"Electrical","subcategory":"Lighting / Signals","name":"50mm Wiring Base / Strobe Base","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":6,"max":12,"condition":"Good","notes":""},{"id":"50mm-buzzer-sound-module","category":"Electrical","subcategory":"Lighting / Signals","name":"50mm Buzzer / Sound Module","unit":"ea","northQty":0,"southQty":8,"originalQtyText":"8","reorder":6,"max":12,"condition":"Good","notes":""},{"id":"vip-light","category":"Electrical","subcategory":"Lighting / Signals","name":"VIP Light","unit":"ea","northQty":0,"southQty":5,"originalQtyText":"5","reorder":"","max":"","condition":"Good","notes":"No reorder listed"},{"id":"600v-3a-class-cc-time-delay-fuse","category":"Electrical","subcategory":"Fuses","name":"600V 3A Class CC Time-Delay Fuse","unit":"ea","northQty":0,"southQty":10,"originalQtyText":"10","reorder":"","max":"","condition":"Good","notes":"Corrected from 26 to 10 | ADC stocked part EDCC3; purchased 8 over history.","adcItems":[{"code":"EDCC3","description":"Edison fuse, EDCC series, Class CC, current-limiting, time-delay, 3A, 600 VAC, ferrule. Package of 10. Feeder/branch protection applications.","historyQty":8,"historyAmount":1338.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"600v-3a-class-cc-time-delay-fuse","stocked":true}],"checkInventory":true},{"id":"250v-2a-midget-time-delay-fuse","category":"Electrical","subcategory":"Fuses","name":"250V 2A Midget Time-Delay Fuse","unit":"ea","northQty":0,"southQty":16,"originalQtyText":"16","reorder":"","max":"","condition":"Good","notes":"ADC stocked part MEN2; purchased 12 over history.","adcItems":[{"code":"MEN2","description":"Edison fuse, MEN series, Class Midget, time-delay, 2A, 250 VAC, ferrule. Package of 10. Supplemental protection applications.","historyQty":12,"historyAmount":948.0,"orderCount":2,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"250v-2a-midget-time-delay-fuse","stocked":true}],"checkInventory":true},{"id":"16a-500v-6kv3-heavy-duty-connector","category":"Electrical","subcategory":"Connectors","name":"16A 500V 6KV3 Heavy-Duty Connector","unit":"ea","northQty":0,"southQty":81,"originalQtyText":"81","reorder":"","max":"","condition":"Good","notes":"18 + 31 + 32 counted"},{"id":"key-switch-protector","category":"Electrical","subcategory":"Protection / Boxes","name":"Key Switch Protector","unit":"ea","northQty":0,"southQty":17,"originalQtyText":"17","reorder":"","max":"","condition":"Good","notes":""},{"id":"ptr-pedal-switch","category":"Electrical","subcategory":"Pedal Controls","name":"PTR Pedal Switch","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":"","max":"","condition":"Good","notes":""},{"id":"ptr-pedal-cord","category":"Electrical","subcategory":"Pedal Controls","name":"PTR Pedal Cord","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":"","max":"","condition":"Good","notes":""},{"id":"junction-box-cover","category":"Electrical","subcategory":"Junction Boxes","name":"Junction Box Cover","unit":"ea","northQty":0,"southQty":5,"originalQtyText":"5","reorder":"","max":"","condition":"Low","notes":""},{"id":"junction-box","category":"Electrical","subcategory":"Junction Boxes","name":"Junction Box","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":"","max":"","condition":"Low","notes":""},{"id":"bja-pump","category":"Hydraulic","subcategory":"Pumps","name":"BJA Pump","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":4,"max":8,"condition":"Original Count","notes":"Not updated"},{"id":"marathon-pump","category":"Hydraulic","subcategory":"Pumps","name":"Marathon Pump","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":2,"max":4,"condition":"Out of Stock","notes":""},{"id":"jb-atlantic-pump","category":"Hydraulic","subcategory":"Pumps","name":"JB Atlantic Pump","unit":"ea","northQty":0,"southQty":8,"originalQtyText":"8","reorder":"","max":"","condition":"Good","notes":""},{"id":"miscellaneous-pumps","category":"Hydraulic","subcategory":"Pumps","name":"Miscellaneous Pumps","unit":"ea","northQty":0,"southQty":16,"originalQtyText":"16","reorder":"","max":"","condition":"Good","notes":""},{"id":"baler-valve","category":"Hydraulic","subcategory":"Valves","name":"GB Valve Baler","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":2,"max":4,"condition":"Valve Name Updated","notes":"Mfg PN: SS-GO3-C7Y-FR-E115-E22 | Internal/stock PN: 02-3075 / 023075 | Previous name: Baler Valve | GB baler valve"},{"id":"compactor-valve-dual-coil","category":"Hydraulic","subcategory":"Valves","name":"GB Valve Compactor Dual Coil","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":2,"max":4,"condition":"Valve Name Updated","notes":"Mfg PN: SS-GO3-C4-FR-E115-E22 | Previous name: Compactor Valve Dual Coil | GB dual coil"},{"id":"compactor-valve-single-coil","category":"Hydraulic","subcategory":"Valves","name":"GB Valve Compactor Single Coil","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":2,"max":4,"condition":"Valve Name Updated","notes":"Mfg PN: SS-GO3-A3X-FR-E115-E22 | Previous name: Compactor Valve Single Coil | GB single coil"},{"id":"small-apt-vip-valve","category":"Hydraulic","subcategory":"Valves","name":"GB Valve APT/VIP Dual Coil","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":2,"max":4,"condition":"Valve Name Updated","notes":"Mfg PN: SS-GO1-C7Y-FR-E115-40 | Previous name: Small APT / VIP Valve"},{"id":"small-single-coil-valve","category":"Hydraulic","subcategory":"Valves","name":"GB Valve VIP Single Coil","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":2,"max":4,"condition":"Valve Name Updated","notes":"Mfg PN: SS-G01-H3Z-C115-E22 | Previous name: Small Single Coil Valve"},{"id":"relief-cartridge","category":"Hydraulic","subcategory":"Cartridges / Gauges","name":"Relief Cartridge","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":4,"max":10,"condition":"Good","notes":""},{"id":"suction-filter-strainer","category":"Hydraulic","subcategory":"Filters / Sight","name":"Suction Filter / Strainer","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":3,"max":6,"condition":"Good","notes":""},{"id":"sight-glass-oil-gauge","category":"Hydraulic","subcategory":"Filters / Sight","name":"Sight Glass / Oil Gauge","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":3,"max":6,"condition":"Out of Stock","notes":""},{"id":"pressure-switch","category":"Hydraulic","subcategory":"Pressure","name":"Pressure Switch","unit":"ea","northQty":0,"southQty":16,"originalQtyText":"16","reorder":6,"max":15,"condition":"Good","notes":"GB pressure switch | ADC stocked part MPS25-1C-P5000A; purchased 16 over history.","adcItems":[{"code":"MPS25-1C-P5000A","description":"ProSense mechanical pressure switch, 75 to 750 psig deadband range, 500 to 5000 psig set point, 316 stainless steel sensing element, Buna-N O-ring seal(s), SPDT 3A, 1/4in male NPT process connection, 1/2in male NPT conduit connection with 6ft cable.","historyQty":16,"historyAmount":2432.0,"orderCount":3,"lastDate":"2026-03-16","lastPO":"RTN/CCREF14756517/Defective","matchedItemId":"pressure-switch","stocked":true}],"checkInventory":true},{"id":"pressure-gauge","category":"Hydraulic","subcategory":"Pressure","name":"Pressure Gauge","unit":"ea","northQty":0,"southQty":8,"originalQtyText":"8","reorder":25,"max":100,"condition":"Good","notes":"ADC stocked part G25-SL6000-4LB; purchased 2 over history.","adcItems":[{"code":"G25-SL6000-4LB","description":"ProSense mechanical pressure gauge, 2.5in diameter, 0 to 6000 psig/0 to 42000 kPa, stainless steel liquid filled case, phosphor bronze, brass wetted parts, 1/4in male NPT process connection, lower mount.","historyQty":2,"historyAmount":43.0,"orderCount":2,"lastDate":"2025-12-10","lastPO":"CCREF14756517","matchedItemId":"pressure-gauge","stocked":true}],"checkInventory":true},{"id":"ptr-cylinder","category":"Hydraulic","subcategory":"Cylinders","name":"PTR Cylinder","unit":"ea","northQty":0,"southQty":7,"originalQtyText":"7","reorder":4,"max":"","condition":"Good","notes":""},{"id":"equipco-cylinder","category":"Hydraulic","subcategory":"Cylinders","name":"Equipco Cylinder","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":6,"max":"","condition":"Original Count","notes":"Not updated"},{"id":"marathon-cylinder","category":"Hydraulic","subcategory":"Cylinders","name":"Marathon Cylinder","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":2,"max":6,"condition":"Original Count","notes":"Not updated"},{"id":"1-5-inch-female-branch-pipe-tee","category":"Hydraulic","subcategory":"Fittings / Connectors","name":"1.5 inch Female Branch Pipe Tee","unit":"ea","northQty":0,"southQty":11,"originalQtyText":"11","reorder":"","max":"","condition":"Good","notes":"Corrected to 11"},{"id":"small-hydraulic-connectors","category":"Hydraulic","subcategory":"Fittings / Connectors","name":"Small Hydraulic Connectors","unit":"ea","northQty":0,"southQty":25,"originalQtyText":"25+","reorder":"","max":"","condition":"Estimated","notes":"Over 25"},{"id":"1-5-inch-quick-disconnect-sets","category":"Hydraulic","subcategory":"Fittings / Connectors","name":"1.5 inch Quick Disconnect Sets","unit":"sets","northQty":0,"southQty":30,"originalQtyText":"30+","reorder":"","max":"","condition":"Estimated","notes":"Over 30"},{"id":"3-4-inch-quick-disconnect-sets","category":"Hydraulic","subcategory":"Fittings / Connectors","name":"3/4 inch Quick Disconnect Sets","unit":"sets","northQty":0,"southQty":30,"originalQtyText":"30+","reorder":"","max":"","condition":"Estimated","notes":"Over 30"},{"id":"manifold","category":"Hydraulic","subcategory":"Manifolds / Locks","name":"Manifold","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":"","max":"","condition":"Good","notes":""},{"id":"compactor-lock","category":"Hydraulic","subcategory":"Manifolds / Locks","name":"Compactor Lock","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":"","max":"","condition":"Good","notes":""},{"id":"unknown-compactor-baler-lock","category":"Hydraulic","subcategory":"Manifolds / Locks","name":"Unknown Compactor/Baler Lock","unit":"ea","northQty":0,"southQty":2,"originalQtyText":"2","reorder":"","max":"","condition":"Needs ID","notes":"Could be compactor or baler lock"},{"id":"slide-latch-side-latch","category":"Hardware","subcategory":"Latches","name":"Slide Latch / Side Latch","unit":"ea","northQty":0,"southQty":6,"originalQtyText":"6","reorder":6,"max":20,"condition":"Good","notes":""},{"id":"slam-latch-door-latch","category":"Hardware","subcategory":"Latches","name":"Slam Latch / Door Latch","unit":"ea","northQty":0,"southQty":4,"originalQtyText":"4","reorder":6,"max":20,"condition":"Good","notes":""},{"id":"t-lock-assemblies-complete","category":"Hardware","subcategory":"Latches","name":"T-Lock Assemblies - Complete","unit":"ea","northQty":0,"southQty":8,"originalQtyText":"8","reorder":"","max":"","condition":"Complete","notes":""},{"id":"t-lock-parts-incomplete-assemblies","category":"Hardware","subcategory":"Latches","name":"T-Lock Parts / Incomplete Assemblies","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":"","max":"","condition":"Incomplete","notes":"Missing pieces"},{"id":"ground-roller-6x8","category":"Hardware","subcategory":"Rollers","name":"Ground Roller 6x8","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Original Count","notes":"Not updated"},{"id":"ground-roller-4-1-2-x-6","category":"Hardware","subcategory":"Rollers","name":"Ground Roller 4 1/2 x 6","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Original Count","notes":"Not updated"},{"id":"nose-roller-4x6","category":"Hardware","subcategory":"Rollers","name":"Nose Roller 4x6","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Original Count","notes":"Not updated"},{"id":"door-seal-marathon","category":"Hardware","subcategory":"Seals","name":"Door Seal Marathon","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":3,"max":"","condition":"Original Count","notes":"Not updated"},{"id":"door-seal-ptr","category":"Hardware","subcategory":"Seals","name":"Door Seal PTR","unit":"ea","northQty":0,"southQty":1,"originalQtyText":"1","reorder":3,"max":"","condition":"Original Count","notes":"Not updated"},{"id":"hinges","category":"Hardware","subcategory":"Hinges","name":"Hinges","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"Significant","reorder":"","max":"","condition":"Estimated","notes":"Significant amount"},{"id":"plc-versa-pak-v8-confirmed-good","category":"PLC / Electronics","subcategory":"PLC","name":"PLC Versa-Pak V8 - Confirmed Good","unit":"ea","northQty":0,"southQty":5,"originalQtyText":"5","reorder":"","max":"","condition":"Good","notes":""},{"id":"plc-versa-pak-v8-untested","category":"PLC / Electronics","subcategory":"PLC","name":"PLC Versa-Pak V8 - Untested","unit":"ea","northQty":0,"southQty":3,"originalQtyText":"3","reorder":"","max":"","condition":"Untested","notes":"May or may not work"},{"id":"plc-vip","category":"PLC / Electronics","subcategory":"PLC","name":"PLC VIP","unit":"ea","northQty":0,"southQty":5,"originalQtyText":"5","reorder":"","max":"","condition":"Good","notes":""},{"id":"used-plcs-various","category":"PLC / Electronics","subcategory":"PLC","name":"Used PLCs - Various","unit":"ea","northQty":0,"southQty":9,"originalQtyText":"9","reorder":"","max":"","condition":"Used / Unknown","notes":"Condition not verified"},{"id":"versa-bale","category":"PLC / Electronics","subcategory":"PLC","name":"Versa-Bale","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"Unknown","reorder":"","max":"","condition":"Unknown","notes":"Original list had no quantity"},{"id":"adc-2687-2142","category":"Electrical","subcategory":"Power / Sensors","name":"WAGO 24VDC Power Supply 2687-2142","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 12 total; verify actual stock.","adcItems":[{"code":"2687-2142","description":"WAGO Eco2 series switching power supply, 24 VDC @ 1.25A/30W, 120 VAC and 240 VAC nominal input, 1-phase, enclosed, plastic housing, 35mm DIN rail mount, cage clamp.","historyQty":12,"historyAmount":860.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"adc-2687-2142","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-edcc2-5","category":"Electrical","subcategory":"Fuses","name":"600V 2.5A Class CC Time-Delay Fuse EDCC2-5","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 2 total; verify actual stock.","adcItems":[{"code":"EDCC2-5","description":"Edison fuse, EDCC series, Class CC, current-limiting, time-delay, 2.5A, 600 VAC, ferrule. Package of 10. Feeder/branch protection applications. Manufacturer part number: EDCC2.5.","historyQty":2,"historyAmount":320.0,"orderCount":1,"lastDate":"2025-10-16","lastPO":"auberge","matchedItemId":"adc-edcc2-5","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-gcx1320-22","category":"Electrical","subcategory":"22mm Controls","name":"22mm 3-Position Maintained Selector Switch GCX1320-22","unit":"ea","northQty":8,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"Added from AutomationDirect recurring purchase history. Purchased 15 total; verify actual stock. | North count: GCX1320 22mm 3-position maintained selector.","adcItems":[{"code":"GCX1320-22","description":"AutomationDirect selector switch, 22mm, 3-position, maintained, (2) N.O./(2) N.C. contact(s), metal base, metal bezel, Operator: black, knob, 30mm, round, plastic.","historyQty":15,"historyAmount":375.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"adc-gcx1320-22","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-gcx1330-22","category":"Electrical","subcategory":"22mm Controls","name":"22mm 3-Position Spring Return Selector Switch GCX1330-22","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 9 total; verify actual stock.","adcItems":[{"code":"GCX1330-22","description":"AutomationDirect selector switch, 22mm, 3-position, spring return to center, (2) N.O./(2) N.C. contact(s), metal base, metal bezel, Operator: black, knob, 30mm, round, plastic.","historyQty":9,"historyAmount":229.5,"orderCount":2,"lastDate":"2025-12-16","lastPO":"Goodwill PGA","matchedItemId":"adc-gcx1330-22","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-gcx1380-22","category":"Electrical","subcategory":"22mm Controls","name":"22mm 3-Position Spring Return Lever Selector GCX1380-22","unit":"ea","northQty":6,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"Added from AutomationDirect recurring purchase history. Purchased 15 total; verify actual stock. | North count: GCX1380 22mm 3-position selector return-to-center.","adcItems":[{"code":"GCX1380-22","description":"AutomationDirect selector switch, 22mm, 3-position, spring return to center, (2) N.O./(2) N.C. contact(s), metal base, metal bezel, Operator: black, lever, 30mm, round, plastic.","historyQty":15,"historyAmount":403.0,"orderCount":3,"lastDate":"2026-03-23","lastPO":"south stock","matchedItemId":"adc-gcx1380-22","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-hmc-40a30-22-bs","category":"Electrical","subcategory":"Motor Controls","name":"Motor Starter 40A 24VAC Coil HMC-40A30-22-BS","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 3 total; verify actual stock.","adcItems":[{"code":"HMC-40A30-22-BS","description":"IronHorse IEC contactor, 40A, (3) N.O. power poles, (2) N.O./(2) N.C. auxiliary contacts, 24 VAC (50/60Hz) coil voltage.","historyQty":3,"historyAmount":195.0,"orderCount":1,"lastDate":"2025-09-19","lastPO":"CCREF14592829","matchedItemId":"adc-hmc-40a30-22-bs","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-hmc-65a30-22-al","category":"Electrical","subcategory":"Motor Controls","name":"Motor Starter 65A HMC-65A30-22-AL","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 3 total; verify actual stock.","adcItems":[{"code":"HMC-65A30-22-AL","description":"IronHorse IEC contactor, 65A, (3) N.O. power poles, (2) N.O./(2) N.C. auxiliary contacts, 120 VAC (50/60Hz) coil voltage.","historyQty":3,"historyAmount":319.0,"orderCount":3,"lastDate":"2026-02-13","lastPO":"Brandsmart-2026-02-12 17:00:27","matchedItemId":"adc-hmc-65a30-22-al","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-hp75","category":"Hardware","subcategory":"Seals","name":"3/4in Hammond Hole Seal HP75","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 2 total; verify actual stock.","adcItems":[{"code":"HP75","description":"Hammond hole seal, 3/4in conduit, carbon steel, ANSI 61 gray, powder coat finish, oil-resistant gasket. For use with carbon steel enclosures.","historyQty":2,"historyAmount":17.5,"orderCount":1,"lastDate":"2025-10-28","lastPO":"CCREF14670935","matchedItemId":"adc-hp75","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-htor32-40-s","category":"Electrical","subcategory":"Motor Controls","name":"Overload 28-40A HTOR32-40-S","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 3 total; verify actual stock.","adcItems":[{"code":"HTOR32-40-S","description":"IronHorse HTOR series thermal overload relay, 28-40A adjustable, bi-metallic, local reset, direct mount power connection(s). For use with HMC-9 to HMC-40 series contactors.","historyQty":3,"historyAmount":79.5,"orderCount":1,"lastDate":"2025-09-19","lastPO":"CCREF14592829","matchedItemId":"adc-htor32-40-s","stocked":true}],"checkInventory":true,"addedFromADC":true},{"id":"adc-htor63-65-l","category":"Electrical","subcategory":"Motor Controls","name":"Overload 45-65A HTOR63-65-L","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Check Inventory","notes":"Added from AutomationDirect recurring purchase history. Purchased 2 total; verify actual stock.","adcItems":[{"code":"HTOR63-65-L","description":"IronHorse HTOR series thermal overload relay, 45-65A adjustable, bi-metallic, local reset, direct mount power connection(s). For use with HMC-50 and HMC-65 series contactors.","historyQty":2,"historyAmount":106.0,"orderCount":2,"lastDate":"2025-09-25","lastPO":"CCREF14605665","matchedItemId":"adc-htor63-65-l","stocked":true}],"checkInventory":true,"addedFromADC":true},{"category":"Hydraulic","subcategory":"Oil","unit":"bucket","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Pending Order","notes":"Pending orders added: South 84 buckets / 2 pallets; North 42 buckets / 1 pallet.","id":"aw46-hydraulic-oil-bucket","name":"AW46 Hydraulic Oil Bucket"},{"category":"Electrical","subcategory":"Interlocks","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"new variation; North live count","id":"mag-interlock-15ft-no-steel","name":"15 ft Magnetic Interlock without Steel"},{"category":"Electrical","subcategory":"Interlocks","unit":"ea","northQty":2,"southQty":0,"originalQtyText":"2","reorder":"","max":"","condition":"North Count","notes":"new variation; North live count","id":"mag-interlock-20ft-no-steel","name":"20 ft Magnetic Interlock without Steel"},{"category":"Electrical","subcategory":"Interlocks","unit":"ea","northQty":7,"southQty":0,"originalQtyText":"7","reorder":"","max":"","condition":"North Count","notes":"new variation; North live count","id":"mag-interlock-15ft-with-steel","name":"15 ft Magnetic Interlock with Steel"},{"category":"Electrical","subcategory":"Interlocks","unit":"ea","northQty":15,"southQty":0,"originalQtyText":"15","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"magnetic-interlock-magnets","name":"Magnets for Magnetic Interlock"},{"category":"PLC / Electronics","subcategory":"PLC","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"North live count; matched Versa-Pak V8 PLC group","id":"versa-pak-v8-plc-north-count","name":"Versa-Pak V8 PLC - North Count"},{"category":"Electrical","subcategory":"30mm Controls","unit":"ea","northQty":9,"southQty":0,"originalQtyText":"9","reorder":"","max":"","condition":"North Count","notes":"spring return right-to-left / key-out; North live count","id":"weg-csw30-cy2r90-key-switch","name":"WEG CSW30-CY2R90 30mm 2-Position Key Switch"},{"category":"Electrical","subcategory":"30mm Controls","unit":"ea","northQty":11,"southQty":0,"originalQtyText":"11","reorder":"","max":"","condition":"North Count","notes":"Harmony 9001K series; key removable left; North live count","id":"schneider-9001ks11k1-key-selector","name":"Schneider 9001KS11K1 2-Position Key Selector Switch"},{"category":"Hardware","subcategory":"Panel Hardware","unit":"ea","northQty":26,"southQty":0,"originalQtyText":"26","reorder":"","max":"","condition":"North Count","notes":"metal/chrome blanking plug for unused 30mm panel holes","id":"30mm-metal-hole-plug","name":"30mm Metal Hole Plug / Blank Plug"},{"category":"Hardware","subcategory":"Connectors","unit":"ea","northQty":40,"southQty":0,"originalQtyText":"40","reorder":"","max":"","condition":"North Count","notes":"4 unopened boxes x 10 each; North live count","id":"neer-lml-11-90-liquid-tight-connector","name":"NEER LML-11 1/2in 90\u00b0 Liquid-Tight Connector"},{"category":"Electrical","subcategory":"Indicators","unit":"ea","northQty":14,"southQty":0,"originalQtyText":"14","reorder":"","max":"","condition":"North Count","notes":"North live count; likely VIP / Driver Light category","id":"driver-lights-green-dual","name":"Driver Lights / Green Dual Lights"},{"category":"Electrical","subcategory":"Connectors","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"No full usable sets confirmed; partial pieces not counted as usable","id":"10-pin-connector-sets-usable","name":"10-Pin Connector Sets - Complete / Usable"},{"category":"Electrical","subcategory":"Connectors","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"Partial pieces, maybe enough for 1 set plus misc from about 2 others; not counted as usable","id":"10-pin-connector-parts-incomplete","name":"10-Pin Connector Parts / Incomplete"},{"category":"Electrical","subcategory":"Connectors","unit":"ea","northQty":31,"southQty":0,"originalQtyText":"31","reorder":"","max":"","condition":"North Count","notes":"19 off shelf + 12 on shelf; North live count","id":"6-pin-connector-sets-pins","name":"6-Pin Connector Sets / Pins"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"general 22mm key switch; North live count","id":"22mm-key-switch-general-north","name":"22mm Key Switch"},{"category":"Electrical","subcategory":"Photo Eyes","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"Photo eye mounting brackets; North live count","id":"photocell-mount-brackets","name":"Photocell Mount Brackets"},{"category":"Electrical","subcategory":"Photo Eyes","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock","id":"photocell-reflector","name":"Photocell Reflector"},{"category":"Electrical","subcategory":"Photo Eyes","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"relay for photocell/photo eye setup","id":"photocell-relay","name":"Photocell Relay"},{"category":"Electrical","subcategory":"Photo Eyes","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock","id":"photocell-base","name":"Photocell Base"},{"category":"Electrical","subcategory":"Photo Eyes","unit":"ea","northQty":2,"southQty":0,"originalQtyText":"2","reorder":"","max":"","condition":"North Count","notes":"photo eye sensor head","id":"photocell-head","name":"Photocell Head"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":9,"southQty":0,"originalQtyText":"9","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"a0309-89-22mm-3pos-maintained","name":"A0309-89 22mm 3-Position Maintained Selector Switch"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count; corrected not GE-1","id":"0309-27-0376-27-22mm-key-switch","name":"0309-27 / 0376-27 22mm Key Switch"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":6,"southQty":0,"originalQtyText":"6","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"0376-14-22mm-3pos-left-spring","name":"0376-14 22mm 3-Position Left Spring Selector Switch"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock; alternate part number noted","id":"0309-29-0376-31-22mm-estop-momentary","name":"0309-29 / 0376-31 22mm E-Stop Momentary"},{"category":"Electrical","subcategory":"22mm Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"22mm-estop-push-pull-button","name":"22mm E-Stop Push Button / Push-Pull"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-00-63-ab-contact-block-nc","name":"03-00-63-AB Contact Block NC"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":5,"southQty":0,"originalQtyText":"5","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-00-62-ab-contact-block-nc-no","name":"03-00-62-AB Contact Block NC/NO"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":16,"southQty":0,"originalQtyText":"16","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-00-76-ab-contact-block-no","name":"03-00-76-AB Contact Block NO"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":12,"southQty":0,"originalQtyText":"12","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"0309-36-0376-21-22mm-no-contact","name":"0309-36 / 0376-21 22mm NO Contact"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":10,"southQty":0,"originalQtyText":"10","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"0309-37-0376-22-22mm-nc-contact","name":"0309-37 / 0376-22 22mm NC Contact"},{"category":"Electrical","subcategory":"Contact Blocks","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"0309-38-22mm-no-nc-contact","name":"0309-38 22mm NO/NC Contact"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":2,"southQty":0,"originalQtyText":"2","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030197-black-reverse-push-button","name":"030197 Black Reverse Push Button"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030200-green-push-button","name":"030200 Green Push Button"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":5,"southQty":0,"originalQtyText":"5","reorder":"","max":"","condition":"North Count","notes":"counted as 2 + 3; North live count","id":"030081-illuminated-push-button","name":"030081 Illuminated Push Button"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":4,"southQty":0,"originalQtyText":"4","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030082-lens","name":"030082 Lens"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":4,"southQty":0,"originalQtyText":"4","reorder":"","max":"","condition":"North Count","notes":"North live count; 030172 deleted/not used","id":"030192-illuminated-estop-push-pull","name":"030192 Illuminated E-Stop Push-Pull"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":4,"southQty":0,"originalQtyText":"4","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030353-lens","name":"030353 Lens"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":6,"southQty":0,"originalQtyText":"6","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"035792-3pos-key-switch-spring-left","name":"035792 3-Position Key Switch Spring Return Left"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030139-selector-switch-spring-center-off","name":"030139 3-Position Selector Switch Spring Return Center Off"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock","id":"030201-estop-push-pull","name":"030201 E-Stop Push-Pull"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"cap only; North live count","id":"990843-mushroom-head-cap-030200","name":"990843 Mushroom Head Cap for 030200 / E-Stop Push-Pull"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":2,"southQty":0,"originalQtyText":"2","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030196-estop-momentary","name":"030196 E-Stop Momentary"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":6,"southQty":0,"originalQtyText":"6","reorder":"","max":"","condition":"North Count","notes":"corrected to 6; North live count","id":"990754-mushroom-head-cap-030196","name":"990754 Mushroom Head Cap for 030196 E-Stop Momentary"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock","id":"030382-key-switch-for-dumper","name":"030382 Key Switch for Dumper"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":3,"southQty":0,"originalQtyText":"3","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030269-2pos-maintained-key-switch","name":"030269 2-Position Maintained Key Switch"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":15,"southQty":0,"originalQtyText":"15","reorder":"","max":"","condition":"North Count","notes":"estimated housings for 030269","id":"030269-key-switch-housings","name":"030269 Key Switch Housings / Accessories"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":7,"southQty":0,"originalQtyText":"7","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"030199-3pos-maintained-key-switch","name":"030199 3-Position Maintained Key Switch"},{"category":"Electrical","subcategory":"Control Accessories","unit":"ea","northQty":30,"southQty":0,"originalQtyText":"30","reorder":"","max":"","condition":"North Count","notes":"estimated at least 30 seals for 030199","id":"030199-key-switch-seals","name":"030199 Key Switch Seals"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":2,"southQty":0,"originalQtyText":"2","reorder":"","max":"","condition":"North Count","notes":"comes with accessories, washers, and seals","id":"030198-vip-key-switch","name":"030198 VIP Key Switch"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"possibly out of use","id":"030195-key-start-push-button","name":"030195 Key Start Push Button"},{"category":"Electrical","subcategory":"Controls","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"pc-n5-cet-4rn2-push-stop-pull-start","name":"PC-N5-CET-4RN2 Push-to-Stop / Pull-to-Start"},{"category":"Hardware","subcategory":"Clips / Pins","unit":"ea","northQty":100,"southQty":0,"originalQtyText":"100","reorder":"","max":"","condition":"North Count","notes":"estimated quantity","id":"m-hcp-hitch-pin-clip-3-1-4","name":"M-HCP Hitch Pin Clip 3 1/4in"},{"category":"Hardware","subcategory":"Chain","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"05-23-82-2060-roller-chain","name":"05-23-82 2060 Roller Chain"},{"category":"Hardware","subcategory":"Chain","unit":"ea","northQty":16,"southQty":0,"originalQtyText":"16","reorder":"","max":"","condition":"North Count","notes":"estimated quantity","id":"05-23-83-2060-master-link","name":"05-23-83 2060 Master Link"},{"category":"Hardware","subcategory":"Chain","unit":"ea","northQty":13,"southQty":0,"originalQtyText":"13","reorder":"","max":"","condition":"North Count","notes":"estimated quantity","id":"05-02-81-2040-master-link","name":"05-02-81 2040 Master Link"},{"category":"PLC / Electronics","subcategory":"Circuit Boards","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-04-58-sycon-pc-board","name":"03-04-58 SYCON PC Board"},{"category":"PLC / Electronics","subcategory":"Circuit Boards","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-03-93-vip-circuit-board","name":"03-03-93 VIP Circuit Board"},{"category":"Hydraulic","subcategory":"Seal Kits","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"North Count","notes":"out of stock","id":"04-03-11-100-sc-seal-kit","name":"04-03-11 100 SC Seal Kit"},{"category":"Hydraulic","subcategory":"Seal Kits","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"04-03-01-250-sc-seal-kit","name":"04-03-01 250 SC Seal Kit"},{"category":"Hardware","subcategory":"Chain","unit":"ea","northQty":1,"southQty":0,"originalQtyText":"1","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-02-85-chain-sprocket","name":"03-02-85 Chain Sprocket"},{"category":"Electrical","subcategory":"Motor Controls","unit":"ea","northQty":4,"southQty":0,"originalQtyText":"4","reorder":"","max":"","condition":"North Count","notes":"North live count","id":"03-49-14-aux-contact-motor-starter","name":"03-49-14 AUX Contact for Motor Starter"},{"id":"02-3075-valve-023075","category":"Hydraulic","subcategory":"Valves","name":"02-3075 Valve / 023075","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Needs Count","notes":"Valve reference from valve list. Verify whether this is separate from GB Valve Baler before using as stocked count.","checkInventory":true},{"id":"020354-pump-3gpm-check-valve","category":"Hydraulic","subcategory":"Pumps","name":"020354 Pump 3 GPM w/ Check Valve","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Needs Count","notes":"Part number 020354. Pump with check valve. Added from valve/reference list; count still needs verification.","checkInventory":true},{"id":"directional-valve-v05","category":"Hydraulic","subcategory":"Valves","name":"Directional Valve V05","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Needs Count","notes":"Mfg PN: C.HYD.D5S.4W2P5 | Added from valve list; count still needs verification.","checkInventory":true},{"id":"gb-valve-bolt-kit-go3","category":"Hydraulic","subcategory":"Valve Accessories","name":"GB Valve Bolt Kit - Natch GO3 Bolt Kit","unit":"ea","northQty":0,"southQty":0,"originalQtyText":"0","reorder":"","max":"","condition":"Needs Count","notes":"Bolt kit for GO3 valve. Name entered as dictated: Natch GO3 Bolt Kit. Count still needs verification.","checkInventory":true}];
+const STORAGE_KEY = "shop_inventory_split_roles_v1";
+const BASE_KEY = "shop_inventory_base_url_v1";
+const SESSION_KEY = "shop_inventory_session_v1";
+const LOC_KEY = "shop_inventory_location_v1";
+const THEME_KEY = "shop_inventory_theme_v1";
+const COMPACT_KEY = "shop_inventory_compact_v1";
+const LIST_KEY = "shop_inventory_list_view_v1";
+const HIDE_ACTIONS_KEY = "shop_inventory_hide_actions_v1";
+const HIDE_NOTES_KEY = "shop_inventory_hide_notes_v1";
+const SIDEBAR_KEY = "shop_inventory_sidebar_collapsed_v1";
+const LIVE_NORTH_PATCH_KEY = "shop_inventory_live_north_patch_20260629_v1";
+const SWAP_FIX_KEY = "shop_inventory_north_south_swap_fix_v1";
+const VALVE_LOCATION_FIX_KEY = "shop_inventory_valve_location_fix_20260629_v2";
+const HAD_EXISTING_STATE_AT_LOAD = !!localStorage.getItem(STORAGE_KEY);
+const LIVE_NORTH_PATCHES = {"30mm-green-no-contact":26,"30mm-green-push-button":6,"30mm-black-push-button":7,"limit-switch-roller-arm":8,"cordgrips":34,"photo-eye-reflective":3,"22mm-2p-selector-key-maintained":3,"22mm-spring-return":2,"22mm-emergency-stop":3,"22mm-green-push-button":7,"transformer":2,"overload-22-32a":7,"adc-gcx1320-22":8,"adc-gcx1380-22":6,"mag-interlock-15ft-no-steel":1,"mag-interlock-20ft-no-steel":2,"mag-interlock-15ft-with-steel":7,"magnetic-interlock-magnets":15,"versa-pak-v8-plc-north-count":3,"weg-csw30-cy2r90-key-switch":9,"schneider-9001ks11k1-key-selector":11,"30mm-metal-hole-plug":26,"neer-lml-11-90-liquid-tight-connector":40,"driver-lights-green-dual":14,"10-pin-connector-sets-usable":0,"10-pin-connector-parts-incomplete":0,"6-pin-connector-sets-pins":31,"22mm-key-switch-general-north":1,"photocell-mount-brackets":3,"photocell-reflector":0,"photocell-relay":3,"photocell-base":0,"photocell-head":2,"a0309-89-22mm-3pos-maintained":9,"0309-27-0376-27-22mm-key-switch":1,"0376-14-22mm-3pos-left-spring":6,"0309-29-0376-31-22mm-estop-momentary":0,"22mm-estop-push-pull-button":1,"03-00-63-ab-contact-block-nc":3,"03-00-62-ab-contact-block-nc-no":5,"03-00-76-ab-contact-block-no":16,"0309-36-0376-21-22mm-no-contact":12,"0309-37-0376-22-22mm-nc-contact":10,"0309-38-22mm-no-nc-contact":1,"030197-black-reverse-push-button":2,"030200-green-push-button":3,"030081-illuminated-push-button":5,"030082-lens":4,"030192-illuminated-estop-push-pull":4,"030353-lens":4,"035792-3pos-key-switch-spring-left":6,"030139-selector-switch-spring-center-off":1,"030201-estop-push-pull":0,"990843-mushroom-head-cap-030200":3,"030196-estop-momentary":2,"990754-mushroom-head-cap-030196":6,"030382-key-switch-for-dumper":0,"030269-2pos-maintained-key-switch":3,"030269-key-switch-housings":15,"030199-3pos-maintained-key-switch":7,"030199-key-switch-seals":30,"030198-vip-key-switch":2,"030195-key-start-push-button":1,"pc-n5-cet-4rn2-push-stop-pull-start":1,"m-hcp-hitch-pin-clip-3-1-4":100,"05-23-82-2060-roller-chain":1,"05-23-83-2060-master-link":16,"05-02-81-2040-master-link":13,"03-04-58-sycon-pc-board":1,"03-03-93-vip-circuit-board":1,"04-03-11-100-sc-seal-kit":0,"04-03-01-250-sc-seal-kit":1,"03-02-85-chain-sprocket":1,"03-49-14-aux-contact-motor-starter":4};
+
+let state = migrateState(loadState());
+applyNorthSouthSwapFixIfNeeded(HAD_EXISTING_STATE_AT_LOAD);
+applyNorthLiveCountPatchIfNeeded();
+applyValveLocationCorrection();
+let currentUser = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+let currentOrderGroup = "all";
+let currentItem = null;
+let currentScannedLabelLocation = "";
+let scannerRunning = false;
+let scannerPaused = false;
+let stream = null;
+let detector = null;
+let jsqrReady = false;
+let canvas = document.createElement("canvas");
+let ctx = canvas.getContext("2d", { willReadFrequently: true });
+let lastCode = "";
+let lastCodeTime = 0;
+seedPresetPendingOrders();
+saveState();
+
+function cloneStarter(){ return JSON.parse(JSON.stringify(STARTER_ITEMS)); }
+function loadState(){ try{ const s=localStorage.getItem(STORAGE_KEY); if(s) return JSON.parse(s); }catch(e){} return {items:cloneStarter(), log:[], pendingOrders:[]}; }
+function applyNorthSouthSwapFixIfNeeded(hasExistingState){
+  try{
+    if(!hasExistingState){ localStorage.setItem(SWAP_FIX_KEY,"starter already swapped"); return; }
+    if(localStorage.getItem(SWAP_FIX_KEY)==="done") return;
+    if(state && Array.isArray(state.items)){
+      state.items.forEach(i=>{ const n=Number(i.northQty||0); i.northQty=Number(i.southQty||0); i.southQty=n; });
+    }
+    if(!Array.isArray(state.log)) state.log=[];
+    state.log.push({time:new Date().toLocaleString(),tech:"RML",action:"location correction",name:"ALL INVENTORY",id:"north-south-swap",location:"North/South",qty:"",before:"North and South were reversed",after:"North and South inventory counts swapped",notes:"Correction: current live count is North; previous original count is South."});
+    localStorage.setItem(SWAP_FIX_KEY,"done");
+  }catch(e){}
+}
+function applyNorthLiveCountPatchIfNeeded(){
+  try{
+    if(localStorage.getItem(LIVE_NORTH_PATCH_KEY)==="done") return;
+    if(!state || !Array.isArray(state.items)) return;
+    const byId={}; state.items.forEach(i=>byId[i.id]=i);
+    STARTER_ITEMS.forEach(si=>{ if(!byId[si.id]){ const copy=JSON.parse(JSON.stringify(si)); state.items.push(copy); byId[copy.id]=copy; }});
+    Object.keys(LIVE_NORTH_PATCHES).forEach(id=>{ if(byId[id]) byId[id].northQty=Number(LIVE_NORTH_PATCHES[id]||0); });
+    if(!Array.isArray(state.log)) state.log=[];
+    state.log.push({time:new Date().toLocaleString(),tech:"RML",action:"north live count patch",name:"North inventory count",id:"north-live-counts",location:"North",qty:Object.keys(LIVE_NORTH_PATCHES).length,before:"",after:"Applied all dictated North counts through latest batch",notes:"Includes controls, contact blocks, drivers lights, hydraulics/hardware, boards, and overload counts."});
+    localStorage.setItem(LIVE_NORTH_PATCH_KEY,"done");
+  }catch(e){}
+}
+function applyValveLocationCorrection(){
+  try{
+    if(localStorage.getItem(VALVE_LOCATION_FIX_KEY)==="done") return;
+    if(!state || !Array.isArray(state.items)) return;
+    const exactValveCounts={
+      "baler-valve":{northQty:0,southQty:4,notes:"Corrected valve location: 4 baler valves are at South, not North."},
+      "compactor-valve-dual-coil":{northQty:0,southQty:2,notes:"Corrected valve location: South stock."},
+      "compactor-valve-single-coil":{northQty:0,southQty:0,notes:"Corrected valve location: out of stock."},
+      "small-apt-vip-valve":{northQty:0,southQty:3,notes:"Corrected valve location: South stock."},
+      "small-single-coil-valve":{northQty:0,southQty:1,notes:"Corrected valve location: South stock."},
+      "02-3075-valve-023075":{northQty:0,southQty:0,notes:"Reference item only / needs count. Do not use as duplicate baler valve stock."},
+      "directional-valve-v05":{northQty:0,southQty:0,notes:"Needs count."},
+      "gb-valve-bolt-kit-go3":{northQty:0,southQty:0,notes:"Needs count."}
+    };
+    const byId={}; state.items.forEach(i=>byId[i.id]=i);
+    Object.entries(exactValveCounts).forEach(([id,fix])=>{
+      const item=byId[id];
+      if(!item) return;
+      item.northQty=Number(fix.northQty||0);
+      item.southQty=Number(fix.southQty||0);
+      if(fix.notes){
+        const existing=String(item.notes||"");
+        if(!existing.includes(fix.notes)) item.notes = existing ? existing + " | " + fix.notes : fix.notes;
+      }
+    });
+    if(!Array.isArray(state.log)) state.log=[];
+    state.log.push({time:new Date().toLocaleString(),tech:"RML",action:"valve location correction",name:"Valve inventory",id:"valve-location-fix",location:"North/South",qty:"",before:"Some valve counts could show under North from previous cached state",after:"Valve counts forced to correct locations: North 0, South has original valve stock",notes:"Baler valves specifically corrected to North 0 / South 4."});
+    localStorage.setItem(VALVE_LOCATION_FIX_KEY,"done");
+  }catch(e){}
+}
+
+function migrateState(st){
+  if(!st || !Array.isArray(st.items)) st={items:[],log:[],pendingOrders:[]};
+  if(!Array.isArray(st.log)) st.log=[];
+  if(!Array.isArray(st.pendingOrders)) st.pendingOrders=[];
+  const byId={};
+  st.items.forEach(i=>byId[i.id]=i);
+  STARTER_ITEMS.forEach(si=>{
+    if(byId[si.id]){
+      const cur=byId[si.id];
+      Object.keys(si).forEach(k=>{
+        if(k==="northQty" || k==="southQty") return;
+        cur[k]=si[k];
+      });
+    }else{
+      st.items.push(JSON.parse(JSON.stringify(si)));
+    }
+  });
+  return st;
+}
+function seedPresetPendingOrders(){
+  if(!state || !Array.isArray(state.items)) return;
+  if(!Array.isArray(state.pendingOrders)) state.pendingOrders=[];
+  const item=state.items.find(i=>i.id==="aw46-hydraulic-oil-bucket");
+  if(!item) return;
+  const presets=[
+    {id:"po_aw46_south_84_buckets", itemId:item.id, name:"AW46 Hydraulic Oil Bucket", qty:84, status:"pending", createdAt:"Preset order", createdBy:"RML", vendorGroup:"Hydraulic", locationTarget:"South", notes:"2 pallets / 84 buckets ordered for South"},
+    {id:"po_aw46_north_42_buckets", itemId:item.id, name:"AW46 Hydraulic Oil Bucket", qty:42, status:"pending", createdAt:"Preset order", createdBy:"RML", vendorGroup:"Hydraulic", locationTarget:"North", notes:"1 pallet / 42 buckets ordered for North"}
+  ];
+  presets.forEach(po=>{
+    if(!state.pendingOrders.some(p=>p.id===po.id)){
+      state.pendingOrders.push(po);
+      state.log.push({time:new Date().toLocaleString(),tech:"RML",action:"marked pending order",name:po.name,id:po.itemId,location:po.locationTarget,qty:po.qty,before:"",after:"",notes:po.notes});
+    }
+  });
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return String(s??"").replace(/[&<>"\']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[c])); }
+function itemCount(i, loc){ return Number(i[loc==="North"?"northQty":"southQty"]||0); }
+function itemStatus(i){ const north=itemCount(i,"North"), south=itemCount(i,"South"); const count=north+south; if(count===0)return"OUT"; if(i.reorder!==""&&i.reorder!==null&&i.reorder!==undefined){const r=Number(i.reorder); if(count<r)return"LOW"; if(count===r)return"AT";} return"OK"; }
+function statusText(s){ return s==="OUT"?"OUT":s==="LOW"?"LOW":s==="AT"?"AT REORDER":"OK"; }
+function statusPill(s){ const cls=s==="OUT"?"out":s==="OK"?"ok":"low"; return `<span class="pill ${cls}">${statusText(s)}</span>`; }
+function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",2600); }
+function beep(){ try{ navigator.vibrate && navigator.vibrate(70); const ac=new (window.AudioContext||window.webkitAudioContext)(); const o=ac.createOscillator(); const g=ac.createGain(); o.frequency.value=880; g.gain.value=.05; o.connect(g); g.connect(ac.destination); o.start(); setTimeout(()=>{o.stop(); ac.close();},90);}catch(e){} }
+function getBaseUrl(){ return localStorage.getItem(BASE_KEY)||location.href.split("?")[0].split("#")[0]; }
+function saveBaseUrl(){ const v=document.getElementById("baseUrl").value.trim(); if(!v)return alert("Paste hosted URL first."); localStorage.setItem(BASE_KEY,v); }
+function qrLink(id, loc){ const url=new URL(getBaseUrl(), location.href); url.searchParams.set("part", id); url.searchParams.set("loc", loc); return url.toString(); }
+function qrImg(url){ return "https://api.qrserver.com/v1/create-qr-code/?size=190x190&data="+encodeURIComponent(url); }
+
+
+function prefAccount(){ return (currentUser && currentUser.initials) ? currentUser.initials : "guest"; }
+function scopedKey(key){ return key + "__" + prefAccount(); }
+function getUiPref(key, fallback=""){
+  const scoped = localStorage.getItem(scopedKey(key));
+  if(scoped !== null) return scoped;
+  const global = localStorage.getItem(key);
+  return global !== null ? global : fallback;
+}
+function setUiPref(key, val){ localStorage.setItem(scopedKey(key), String(val)); }
+function removeUiPref(key){ localStorage.removeItem(scopedKey(key)); }
+function applyUiPrefs(){
+  const theme = getUiPref(THEME_KEY, "light");
+  document.body.classList.toggle("dark", theme === "dark");
+  document.body.classList.toggle("compact", getUiPref(COMPACT_KEY,"0") === "1");
+  document.body.classList.toggle("listView", getUiPref(LIST_KEY,"0") === "1");
+  document.body.classList.toggle("hideActions", getUiPref(HIDE_ACTIONS_KEY,"0") === "1");
+  document.body.classList.toggle("hideNotes", getUiPref(HIDE_NOTES_KEY,"0") === "1");
+  const admin=document.getElementById("adminPage");
+  if(admin) admin.classList.toggle("sidebarCollapsed", getUiPref(SIDEBAR_KEY,"0") === "1");
+  syncSettingsMenu();
+}
+function syncSettingsMenu(){
+  const dark=document.getElementById("darkToggle");
+  if(dark) dark.checked = getUiPref(THEME_KEY,"light") === "dark";
+  const compact=document.getElementById("compactToggle");
+  if(compact) compact.checked = getUiPref(COMPACT_KEY,"0") === "1";
+  const loc=document.getElementById("defaultLocationSetting");
+  if(loc) loc.value = getUiPref(LOC_KEY,"North");
+  const list=document.getElementById("listToggle");
+  if(list) list.checked = getUiPref(LIST_KEY,"0") === "1";
+  const hideActions=document.getElementById("hideActionsToggle");
+  if(hideActions) hideActions.checked = getUiPref(HIDE_ACTIONS_KEY,"0") === "1";
+  const hideNotes=document.getElementById("hideNotesToggle");
+  if(hideNotes) hideNotes.checked = getUiPref(HIDE_NOTES_KEY,"0") === "1";
+  const acc=document.getElementById("settingsAccountName");
+  if(acc) acc.textContent = currentUser ? `${currentUser.initials} (${currentUser.role})` : "Not signed in";
+}
+function setTheme(theme){ setUiPref(THEME_KEY, theme); applyUiPrefs(); }
+function setCompactMode(on){ setUiPref(COMPACT_KEY, on ? "1" : "0"); applyUiPrefs(); }
+function setListMode(on){ setUiPref(LIST_KEY, on ? "1" : "0"); applyUiPrefs(); }
+function setHideActions(on){ setUiPref(HIDE_ACTIONS_KEY, on ? "1" : "0"); applyUiPrefs(); }
+function setHideNotes(on){ setUiPref(HIDE_NOTES_KEY, on ? "1" : "0"); applyUiPrefs(); }
+function setDefaultLocation(loc){
+  setUiPref(LOC_KEY, loc);
+  const active=document.getElementById("activeLocation"); if(active) active.value=loc;
+  const panel=document.getElementById("panelLocation"); if(panel) panel.value=loc;
+}
+function toggleSettingsMenu(force){ openSettingsModal(); }
+function openSettingsModal(){
+  const modal=document.getElementById("settingsModal");
+  if(modal){ modal.classList.remove("hidden"); syncSettingsMenu(); const base=document.getElementById("baseUrl"); if(base) base.value=getBaseUrl(); }
+}
+function closeSettingsModal(){
+  const modal=document.getElementById("settingsModal");
+  if(modal) modal.classList.add("hidden");
+}
+function toggleSidebar(){
+  const admin=document.getElementById("adminPage"); if(!admin) return;
+  const next=!admin.classList.contains("sidebarCollapsed");
+  admin.classList.toggle("sidebarCollapsed", next);
+  setUiPref(SIDEBAR_KEY, next ? "1" : "0");
+}
+function resetUiDefaults(){
+  if(!confirm("Reset layout/theme settings for this account?")) return;
+  [THEME_KEY,COMPACT_KEY,LIST_KEY,HIDE_ACTIONS_KEY,HIDE_NOTES_KEY,LOC_KEY,SIDEBAR_KEY].forEach(removeUiPref);
+  applyUiPrefs();
+  const active=document.getElementById("activeLocation"); if(active) active.value="North";
+  const panel=document.getElementById("panelLocation"); if(panel) panel.value="North";
+}
+document.addEventListener("click", function(e){
+  const menu=document.getElementById("settingsMenu");
+  if(!menu || menu.classList.contains("hidden")) return;
+  if(e.target.closest(".settingsMenu") || e.target.closest(".iconBtn")) return;
+  menu.classList.add("hidden");
+});
+
+function login(){
+  const initials = document.getElementById("loginInitials").value.trim().toLowerCase();
+  if(!initials) return alert("Enter initials.");
+  let role = "";
+  if(initials === "rml" || initials === "jpm") role = "admin";
+  else if(initials === "tech") role = "tech";
+  else return alert("Use RML or JPM for admin, or TECH for tech scanner.");
+  currentUser = {initials: initials.toUpperCase(), role};
+  localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+  route();
+}
+function logout(){
+  stopScanner();
+  currentUser = null;
+  localStorage.removeItem(SESSION_KEY);
+  document.getElementById("loginInitials").value = "";
+  route();
+}
+function renderAccountArea(){
+  const initials = currentUser ? currentUser.initials : "--";
+  const role = currentUser ? currentUser.role : "";
+  const avatar=document.getElementById("accountAvatar"); if(avatar) avatar.textContent=initials.slice(0,2);
+  const name=document.getElementById("accountName"); if(name) name.textContent=initials;
+  const roleEl=document.getElementById("accountRole"); if(roleEl) roleEl.textContent=role ? role + " account" : "";
+  const settingsAcc=document.getElementById("settingsAccountName"); if(settingsAcc) settingsAcc.textContent=currentUser ? `${initials} (${role})` : "Not signed in";
+}
+function route(){
+  document.body.classList.remove("adminMode");
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("techPage").classList.add("hidden");
+  document.getElementById("adminPage").classList.add("hidden");
+  document.getElementById("quickPanel").classList.remove("open");
+  if(!currentUser){
+    document.getElementById("loginPage").classList.remove("hidden");
+    document.getElementById("topSub").textContent = "Sign in to continue.";
+    applyUiPrefs();
+    return;
+  }
+  applyUiPrefs();
+  renderAccountArea();
+  if(currentUser.role === "admin"){
+    document.body.classList.add("adminMode");
+    document.getElementById("adminPage").classList.remove("hidden");
+    const base=document.getElementById("baseUrl"); if(base) base.value=getBaseUrl();
+    populateFilters();
+    renderAdmin();
+    showAdminView("parts");
+  } else {
+    document.getElementById("techPage").classList.remove("hidden");
+    document.getElementById("topSub").textContent = "Tech scanner — scan container and update only that scanned part.";
+    document.getElementById("activeLocation").value = getUiPref(LOC_KEY,"North");
+    const params = new URLSearchParams(location.search);
+    if(params.get("part")) openPartById(params.get("part"), params.get("loc") || document.getElementById("activeLocation").value);
+  }
+}
+function populateFilters(){
+  const cats=[...new Set(state.items.map(i=>i.category))].sort();
+  const sel=document.getElementById("categoryFilter");
+  if(!sel) return;
+  const old=sel.value;
+  sel.innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join("");
+  sel.value=old;
+}
+
+function copyText(text){
+  text=String(text||"");
+  if(!text) return;
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).catch(()=>{}); return; }
+  const ta=document.createElement("textarea");
+  ta.value=text; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.focus(); ta.select();
+  try{ document.execCommand("copy"); }catch(e){}
+  document.body.removeChild(ta);
+}
+function splitPartNumberValue(v){
+  return String(v||"").split(/\s*(?:\/|,|;|\band\b)\s*/i).map(x=>x.trim()).filter(Boolean);
+}
+function getPartNumbers(i){
+  const out=[];
+  const add=v=>{ splitPartNumberValue(v).forEach(x=>{ if(x && !out.includes(x)) out.push(x); }); };
+  (i.adcItems||[]).forEach(x=>add(x.code));
+  const notes=String(i.notes||"");
+  const patterns=[
+    /Mfg\s*PN:\s*([^|\n]+)/ig,
+    /Internal\/stock\s*PN:\s*([^|\n]+)/ig,
+    /Stock\s*PN:\s*([^|\n]+)/ig,
+    /Part\s*number\s*:?\s*([^|\.\n]+)/ig,
+    /MFG\s*#:\s*([^|\n]+)/ig,
+    /PN:\s*([^|\n]+)/ig
+  ];
+  patterns.forEach(re=>{ let m; while((m=re.exec(notes))){ add(m[1]); } });
+  const name=String(i.name||"");
+  const namePatterns=[/\b\d{2}-\d{2}-\d{2}\b/g,/\b\d{2}-\d{4}\b/g,/\b\d{5,6}\b/g,/\b[A-Z]\.[A-Z]{3}\.[A-Z0-9.]+\b/g];
+  namePatterns.forEach(re=>{ let m; while((m=re.exec(name))){ add(m[0]); } });
+  return out.filter(x=>x.length>1);
+}
+function renderPartNumberChips(i){
+  const nums=getPartNumbers(i);
+  if(!nums.length) return "";
+  const chips=nums.map(n=>`<button class="copyChip" title="Copy ${escAttr(n)}" onclick="copyText(${escAttr(JSON.stringify(n))}); event.stopPropagation();">${esc(n)} 📋</button>`).join("");
+  const all=nums.join(" | ");
+  return `<div class="partNumberWrap"><div class="partNumberLabel">Copy part number${nums.length>1?"s":""}</div>${chips}${nums.length>1?`<button class="copyChip copyAllChip" onclick="copyText(${escAttr(JSON.stringify(all))}); event.stopPropagation();">Copy all</button>`:""}</div>`;
+}
+
+function filteredItems(){
+  const q=(document.getElementById("search")?.value||"").toLowerCase().trim();
+  const cat=document.getElementById("categoryFilter")?.value||"";
+  const st=document.getElementById("statusFilter")?.value||"";
+  return state.items.filter(i=>{
+    const blob=[i.id,i.name,i.category,i.subcategory,i.notes,i.condition,getPartNumbers(i).join(" ")].join(" ").toLowerCase();
+    if(q&&!blob.includes(q))return false;
+    if(cat&&i.category!==cat)return false;
+    if(st&&itemStatus(i)!==st)return false;
+    return true;
+  });
+}
+function cardHtml(i){
+  const adCodes=(i.adcItems||[]).map(x=>x.code).join(", ");
+  const pendingQty=pendingQtyFor(i.id);
+  const badges = `${i.adcItems&&i.adcItems.length?`<div class="adcBadge">🧾 AD stock ${esc(adCodes)}</div>`:""}${i.checkInventory?`<div class="checkBadge">🔎 Check inventory</div>`:""}${pendingQty>0?`<div class="pendingBadge">⏳ Pending ${pendingQty}</div>`:""}`;
+  return `<div class="itemCard">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><h3>${esc(i.name)}</h3><div class="small">${esc(i.category)} / ${esc(i.subcategory)}</div>${badges}</div>${statusPill(itemStatus(i))}
+    </div>
+    <div class="miniQty">
+      <div class="mini"><span>North</span><b>${itemCount(i,"North")}</b></div>
+      <div class="mini"><span>South</span><b>${itemCount(i,"South")}</b></div>
+      <div class="mini"><span>Reorder</span><b>${i.reorder===""?"-":i.reorder}</b></div>
+    </div>
+    ${renderPartNumberChips(i)}
+    <div class="small notesLine">${esc(i.notes||"")}</div>
+    <div class="actionBar">
+      <button class="btn-primary miniAction" onclick="openPartById('${i.id}','North')">Adjust N</button>
+      <button class="btn-primary miniAction" onclick="openPartById('${i.id}','South')">Adjust S</button>
+      ${i.checkInventory?`<button class="btn-yellow miniAction" onclick="markInventoryChecked('${i.id}')">Checked</button>`:""}
+      <button class="btn-light miniAction" onclick="markPending('${i.id}')">Pending</button>
+    </div>
+  </div>`;
+}
+function renderAdmin(){
+  renderReorderCopyBox();
+  const lines=state.items.length;
+  const need=state.items.filter(i=>["OUT","LOW","AT"].includes(itemStatus(i)));
+  document.getElementById("statLines").textContent=lines;
+  document.getElementById("statNeed").textContent=need.length;
+  document.getElementById("statOut").textContent=state.items.filter(i=>itemStatus(i)==="OUT").length;
+  document.getElementById("statChanges").textContent=state.log.length;
+
+  renderAdcCheck();
+  renderPendingOrders();
+
+  const overview = need.slice(0,12);
+  document.getElementById("overviewCards").innerHTML = overview.length ? overview.map(cardHtml).join("") : '<div class="card">No low items right now.</div>';
+  document.getElementById("partsCards").innerHTML = filteredItems().map(cardHtml).join("");
+  renderOrderView();
+  renderLog();
+}
+function showAdminView(v){
+  if(v === "settings"){ openSettingsModal(); return; }
+  const views=["parts","pending","changelog","order","qr"];
+  views.forEach(x=>{
+    const view=document.getElementById(x+"View"); if(view) view.classList.toggle("hidden",x!==v);
+    const nav=document.getElementById("nav"+x.charAt(0).toUpperCase()+x.slice(1)); if(nav) nav.classList.toggle("active",x===v);
+  });
+  const navSettings=document.getElementById("navSettings"); if(navSettings) navSettings.classList.remove("active");
+  if(v==="qr") renderQrLabels();
+  if(v==="order") renderOrderView();
+  if(v==="pending") renderPendingOrders();
+  if(v==="changelog") renderLog();
+  if(v==="adc") renderAdcCheck();
+  if(v==="overview") renderAdmin();
+  hideSearchSuggestions();
+}
+function renderLog(){
+  const body=document.getElementById("logRows");
+  if(!body) return;
+  body.innerHTML=state.log.slice().reverse().map(l=>`<tr><td data-label="Time">${esc(l.time)}</td><td data-label="Tech">${esc(l.tech)}</td><td data-label="Action">${esc(l.action)}</td><td data-label="Part">${esc(l.name)}</td><td data-label="Location">${esc(l.location)}</td><td data-label="Qty">${esc(l.qty)}</td><td data-label="Before">${esc(l.before)}</td><td data-label="After">${esc(l.after)}</td></tr>`).join("");
+}
+
+async function startScanner(){
+  if(scannerRunning)return;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720}}, audio:false});
+    const video=document.getElementById("video");
+    video.srcObject=stream; await video.play();
+    scannerRunning=true; scannerPaused=false;
+    document.getElementById("startBtn").classList.add("hidden");
+    document.getElementById("stopBtn").classList.remove("hidden");
+    document.getElementById("scannerState").outerHTML='<span id="scannerState" class="pill ok">SCANNING</span>';
+    if("BarcodeDetector" in window){
+      detector=new BarcodeDetector({formats:["qr_code"]});
+      document.getElementById("scannerMode").textContent="Native scanner active";
+    }else{
+      document.getElementById("scannerMode").textContent="Loading fallback scanner";
+      await loadJsQR();
+      document.getElementById("scannerMode").textContent=jsqrReady?"Fallback scanner active":"Fallback unavailable";
+    }
+    document.getElementById("scanMessage").textContent="Point camera at a bin QR code.";
+    scanLoop();
+  }catch(e){
+    alert("Camera could not start. Use HTTPS/hosted site and allow camera permission. Error: "+e.message);
+  }
+}
+function stopScanner(){
+  scannerRunning=false;
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  if(document.getElementById("startBtn")) document.getElementById("startBtn").classList.remove("hidden");
+  if(document.getElementById("stopBtn")) document.getElementById("stopBtn").classList.add("hidden");
+  if(document.getElementById("scannerState")) document.getElementById("scannerState").outerHTML='<span id="scannerState" class="pill neutral">READY</span>';
+  if(document.getElementById("scannerMode")) document.getElementById("scannerMode").textContent="Camera off";
+}
+function loadJsQR(){
+  return new Promise((resolve)=>{
+    if(window.jsQR){jsqrReady=true;return resolve();}
+    const s=document.createElement("script");
+    s.src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js";
+    s.onload=()=>{jsqrReady=true;resolve();};
+    s.onerror=()=>{jsqrReady=false;resolve();};
+    document.head.appendChild(s);
+  });
+}
+async function scanLoop(){
+  if(!scannerRunning)return;
+  const video=document.getElementById("video");
+  try{
+    if(!scannerPaused && video.readyState>=2){
+      let code=null;
+      if(detector){
+        const results=await detector.detect(video);
+        if(results && results.length) code=results[0].rawValue;
+      }else if(window.jsQR){
+        canvas.width=video.videoWidth; canvas.height=video.videoHeight;
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const result=jsQR(img.data,img.width,img.height);
+        if(result) code=result.data;
+      }
+      if(code) handleScan(code);
+    }
+  }catch(e){}
+  requestAnimationFrame(scanLoop);
+}
+function parseScan(raw){
+  raw=String(raw||"").trim();
+  try{ const url=new URL(raw); return {part:url.searchParams.get("part")||url.searchParams.get("id")||"", loc:url.searchParams.get("loc")||""}; }catch(e){}
+  if(raw.startsWith("PART:")) raw=raw.slice(5);
+  const parts=raw.split("|");
+  return {part:parts[0], loc:parts[1]||""};
+}
+function handleScan(raw){
+  const now=Date.now();
+  if(raw===lastCode && now-lastCodeTime<1500)return;
+  lastCode=raw; lastCodeTime=now;
+  const parsed=parseScan(raw);
+  const id=parsed.part;
+  const loc=parsed.loc || document.getElementById("activeLocation").value;
+  const item=state.items.find(i=>i.id===id);
+  if(!item){ showToast("QR read, but part not found: "+id); return; }
+  beep();
+  scannerPaused=true;
+  openPanel(item, loc);
+}
+function openPartById(id, loc){
+  const item=state.items.find(i=>i.id===id);
+  if(!item)return alert("Part not found.");
+  openPanel(item, loc || getUiPref(LOC_KEY,"North"));
+}
+function openPanel(item, loc){
+  currentItem=item;
+  currentScannedLabelLocation = loc || getUiPref(LOC_KEY,"North");
+  document.getElementById("scanMessage").textContent = "Scanned: " + item.name + " — choose how many to take/add.";
+  document.getElementById("panelLocation").value=currentScannedLabelLocation;
+  if(document.getElementById("activeLocation")) document.getElementById("activeLocation").value=document.getElementById("panelLocation").value;
+  localStorage.setItem(LOC_KEY, document.getElementById("panelLocation").value);
+  document.getElementById("quickPanel").classList.add("open");
+  refreshPanel();
+}
+function closePanel(){
+  document.getElementById("quickPanel").classList.remove("open");
+  currentItem=null;
+  scannerPaused=false;
+  if(currentUser && currentUser.role==="admin") renderAdmin();
+}
+function refreshPanel(){
+  if(!currentItem)return;
+  document.getElementById("panelCat").textContent=currentItem.category+" / "+currentItem.subcategory;
+  document.getElementById("panelName").textContent=currentItem.name;
+  document.getElementById("panelId").textContent="ID: "+currentItem.id;
+  document.getElementById("panelNorth").textContent=itemCount(currentItem,"North");
+  document.getElementById("panelSouth").textContent=itemCount(currentItem,"South");
+  document.getElementById("panelStatus").outerHTML=statusPill(itemStatus(currentItem)).replace("<span","<div id=\"panelStatus\"").replace("</span>","</div>");
+  const loc=document.getElementById("panelLocation").value;
+  const currentAtLoc=itemCount(currentItem,loc);
+  const otherLoc=loc==="North"?"South":"North";
+  const otherCount=itemCount(currentItem,otherLoc);
+  const labelLoc=currentScannedLabelLocation || loc;
+  const note=document.getElementById("scanLocationNote");
+  if(note){
+    const changed = labelLoc !== loc;
+    note.innerHTML = `Scanned label: <b>${esc(labelLoc)}</b>${changed?` • Updating: <b>${esc(loc)}</b>`:""}<br><span class="small">Other location ${esc(otherLoc)}: <b>${otherCount}</b>${otherCount===0?" — blank/none recorded there":""}</span>`;
+  }
+  document.getElementById("adjustingNow").innerHTML=`Adjusting <b>${esc(currentItem.name)}</b><br><span style="font-size:.9rem">Location: ${loc} • Current count: ${currentAtLoc}</span>`;
+  document.getElementById("lastAction").innerHTML=`Ready. Current <b>${loc}</b> count: <b>${currentAtLoc}</b>`;
+}
+function quickChange(delta){
+  if(!currentItem)return;
+  const loc=document.getElementById("panelLocation").value;
+  if(document.getElementById("activeLocation")) document.getElementById("activeLocation").value=loc;
+  localStorage.setItem(LOC_KEY, loc);
+  const key=loc==="North"?"northQty":"southQty";
+  const before=Number(currentItem[key]||0);
+  const after=before+delta;
+  if(after<0 && !confirm("This will make stock negative. Continue?"))return;
+  currentItem[key]=after;
+  const tech=(currentUser && currentUser.initials) ? currentUser.initials : "TECH";
+  const action=delta<0?"take":"add";
+  state.log.push({time:new Date().toLocaleString(),tech,action,name:currentItem.name,id:currentItem.id,location:loc,qty:Math.abs(delta),before,after});
+  saveState();
+  beep();
+  document.getElementById("lastAction").innerHTML=`Saved for <b>${esc(currentItem.name)}</b><br><b>${loc}</b>: ${before} → ${after}`;
+  showToast(`Saved: ${currentItem.name} at ${loc} ${before} → ${after}`);
+  refreshPanel();
+  if(document.getElementById("autoContinue") && document.getElementById("autoContinue").checked){
+    setTimeout(()=>{ closePanel(); document.getElementById("scanMessage").textContent="Saved. Scanner is ready — scan the next container."; },500);
+  }
+}
+function customTake(){ const q=Number(document.getElementById("customQty").value||0); if(q>0)quickChange(-q); }
+function customAdd(){ const q=Number(document.getElementById("customQty").value||0); if(q>0)quickChange(q); }
+function setExact(){
+  if(!currentItem)return;
+  const q=Number(document.getElementById("customQty").value||0);
+  if(!Number.isFinite(q)||q<0)return alert("Enter a valid count.");
+  const loc=document.getElementById("panelLocation").value;
+  const key=loc==="North"?"northQty":"southQty";
+  const before=Number(currentItem[key]||0);
+  currentItem[key]=q;
+  const tech=(currentUser && currentUser.initials) ? currentUser.initials : "TECH";
+  state.log.push({time:new Date().toLocaleString(),tech,action:"set exact",name:currentItem.name,id:currentItem.id,location:loc,qty:q,before,after:q});
+  saveState();
+  beep();
+  document.getElementById("lastAction").innerHTML=`Exact count saved: <b>${loc}</b> ${before} → ${q}`;
+  refreshPanel();
+}
+function pendingQtyFor(id){
+  if(!state.pendingOrders) state.pendingOrders=[];
+  return state.pendingOrders.filter(p=>p.itemId===id && p.status==="pending").reduce((a,p)=>a+Number(p.qty||0),0);
+}
+function markInventoryChecked(id){
+  const item=state.items.find(i=>i.id===id);
+  if(!item) return;
+  item.checkInventory=false;
+  item.checkedAt=new Date().toLocaleString();
+  state.log.push({time:new Date().toLocaleString(),tech:(currentUser?currentUser.initials:"ADMIN"),action:"inventory checked",name:item.name,id:item.id,location:"",qty:"",before:"",after:""});
+  saveState();
+  renderAdmin();
+  showToast("Inventory checked: "+item.name);
+}
+function renderAdcCheck(){
+  const box=document.getElementById("adcCards");
+  if(!box) return;
+  const adcItems=state.items.filter(i=>i.adcItems && i.adcItems.length);
+  adcItems.sort((a,b)=>{
+    const aq=(a.adcItems||[]).reduce((x,y)=>x+Number(y.historyQty||0),0);
+    const bq=(b.adcItems||[]).reduce((x,y)=>x+Number(y.historyQty||0),0);
+    return bq-aq || a.name.localeCompare(b.name);
+  });
+  box.innerHTML=adcItems.map(i=>{
+    const purchases=(i.adcItems||[]).map(ad=>`<div class="small"><b>${esc(ad.code)}</b> — purchased ${esc(ad.historyQty)} / orders ${esc(ad.orderCount||"")} / last ${esc(ad.lastDate||"")}</div>`).join("");
+    return `<div class="adcCard ${i.checkInventory?"needCheck":""}">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div><h3>${esc(i.name)}</h3><div class="small">${esc(i.category)} / ${esc(i.subcategory)}</div></div>${statusPill(itemStatus(i))}
+      </div>
+      <div class="miniQty">
+        <div class="mini"><span>North</span><b>${itemCount(i,"North")}</b></div>
+        <div class="mini"><span>South</span><b>${itemCount(i,"South")}</b></div>
+        <div class="mini"><span>Reorder</span><b>${i.reorder===""?"-":i.reorder}</b></div>
+      </div>
+      ${i.checkInventory?`<div class="checkBadge">🔎 Check inventory count</div>`:`<div class="adcBadge">✅ Inventory checked</div>`}
+      ${purchases}
+      <div class="orderButtons">
+        <button class="btn-primary" onclick="openPartById('${i.id}','North')">Adjust North</button>
+        <button class="btn-primary miniAction" onclick="openPartById('${i.id}','South')">Adjust S</button>
+        <button class="btn-yellow miniAction" onclick="markInventoryChecked('${i.id}')">Checked</button>
+        <button class="btn-light miniAction" onclick="markPending('${i.id}')">Pending</button>
+        ${(i.adcItems&&i.adcItems[0])?`<a class="btn-light" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center" href="https://www.automationdirect.com/adc/search/search_results?searchquery=${encodeURIComponent(i.adcItems[0].code)}">Search AD</a>`:""}
+      </div>
+    </div>`;
+  }).join("");
+}
+function markPending(id){
+  const item=state.items.find(i=>i.id===id);
+  if(!item) return;
+  const suggested=suggestedOrder(item);
+  const fallback=suggested==="" || suggested===0 ? 1 : suggested;
+  const qty=Number(prompt("Quantity ordered / pending for:\\n"+item.name, fallback));
+  if(!Number.isFinite(qty) || qty<=0) return;
+  if(!state.pendingOrders) state.pendingOrders=[];
+  const p={id:"po_"+Date.now()+"_"+Math.random().toString(16).slice(2), itemId:item.id, name:item.name, qty, status:"pending", createdAt:new Date().toLocaleString(), createdBy:(currentUser?currentUser.initials:"ADMIN"), vendorGroup:partGroup(item)};
+  state.pendingOrders.push(p);
+  state.log.push({time:new Date().toLocaleString(),tech:p.createdBy,action:"marked pending order",name:item.name,id:item.id,location:"",qty,before:"",after:""});
+  saveState();
+  renderAdmin();
+  showToast("Pending order added: "+item.name);
+}
+function receivePending(pendingId, loc){
+  if(!state.pendingOrders) state.pendingOrders=[];
+  const idx=state.pendingOrders.findIndex(p=>p.id===pendingId);
+  if(idx<0) return;
+  const p=state.pendingOrders[idx];
+  const item=state.items.find(i=>i.id===p.itemId);
+  if(!item) return alert("Item not found.");
+  const key=loc==="North"?"northQty":"southQty";
+  const before=Number(item[key]||0);
+  const after=before+Number(p.qty||0);
+  item[key]=after;
+  state.log.push({time:new Date().toLocaleString(),tech:(currentUser?currentUser.initials:"ADMIN"),action:"received pending order",name:item.name,id:item.id,location:loc,qty:p.qty,before,after});
+  state.pendingOrders.splice(idx,1);
+  saveState();
+  renderAdmin();
+  showToast("Received "+p.qty+" into "+loc+": "+item.name);
+}
+function cancelPending(pendingId){
+  if(!state.pendingOrders) state.pendingOrders=[];
+  const idx=state.pendingOrders.findIndex(p=>p.id===pendingId);
+  if(idx<0) return;
+  if(!confirm("Cancel this pending order?")) return;
+  const p=state.pendingOrders[idx];
+  state.log.push({time:new Date().toLocaleString(),tech:(currentUser?currentUser.initials:"ADMIN"),action:"cancelled pending order",name:p.name,id:p.itemId,location:"",qty:p.qty,before:"",after:""});
+  state.pendingOrders.splice(idx,1);
+  saveState();
+  renderAdmin();
+}
+function renderPendingOrders(){
+  const box=document.getElementById("pendingRows");
+  if(!box) return;
+  if(!state.pendingOrders) state.pendingOrders=[];
+  const pending=state.pendingOrders.filter(p=>p.status==="pending");
+  if(!pending.length){
+    box.innerHTML='<div class="card">No pending orders right now.</div>';
+    return;
+  }
+  box.innerHTML=pending.map(p=>{
+    const item=state.items.find(i=>i.id===p.itemId);
+    return `<div class="pendingRow">
+      <div>
+        <h3 style="margin:0 0 4px">${esc(p.name)}</h3>
+        <div class="small">Qty pending: <b>${esc(p.qty)}</b> • ${p.locationTarget?`For: <b>${esc(p.locationTarget)}</b> • `:""}Added by ${esc(p.createdBy)} • ${esc(p.createdAt)}</div>
+        ${p.notes?`<div class="small">${esc(p.notes)}</div>`:""}
+        ${item?`<div class="small">Current North: ${itemCount(item,"North")} • Current South: ${itemCount(item,"South")}</div>`:""}
+      </div>
+      <div class="orderButtons">
+        ${p.locationTarget?`<button class="btn-green" onclick="receivePending('${p.id}','${esc(p.locationTarget)}')">Received ${esc(p.locationTarget)}</button>`:`<button class="btn-green" onclick="receivePending('${p.id}','North')">Received North</button><button class="btn-green" onclick="receivePending('${p.id}','South')">Received South</button>`}
+        <button class="btn-red" onclick="cancelPending('${p.id}')">Cancel</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function qrSearchMatches(i,q){
+  if(!q) return true;
+  const nums=getPartNumbers(i).join(" ");
+  const hay=[i.name,i.id,i.category,i.subcategory,i.notes,nums].join(" ").toLowerCase();
+  return q.toLowerCase().split(/\s+/).filter(Boolean).every(term=>hay.includes(term));
+}
+function renderQrLabels(){
+  const mode=document.getElementById("qrLocation") ? document.getElementById("qrLocation").value : "Both";
+  const q=document.getElementById("qrSearch") ? document.getElementById("qrSearch").value.trim() : "";
+  const locs=mode==="Both"?["North","South"]:[mode];
+  const list=filteredItems().filter(i=>qrSearchMatches(i,q));
+  const box=document.getElementById("qrLabels");
+  if(!box) return;
+  if(!list.length){
+    box.innerHTML='<div class="card">No QR labels match that search.</div>';
+    return;
+  }
+  box.innerHTML=list.map(i=>{
+    const labels=locs.map(loc=>renderQrLabel(i,loc)).join("");
+    if(mode==="Both"){
+      return `<div class="qrPairCard">
+        <div class="qrPairHead">
+          <div><h3>${esc(i.name)}</h3><div class="small">${esc(i.category)} / ${esc(i.subcategory||"")} • ID: ${esc(i.id)}</div></div>
+          ${statusPill(itemStatus(i))}
+        </div>
+        <div class="qrPairLabels">${labels}</div>
+      </div>`;
+    }
+    return labels;
+  }).join("");
+}
+function renderQrLabel(i,loc){
+  const other=loc==="North"?"South":"North";
+  const thisQty=itemCount(i,loc);
+  const otherQty=itemCount(i,other);
+  const link=qrLink(i.id,loc);
+  const addr=(typeof LOCATION_ADDRESSES!=="undefined" && LOCATION_ADDRESSES[loc]) ? LOCATION_ADDRESSES[loc] : loc;
+  return `<div class="qrLabel qr${esc(loc)}">
+    <div class="locBanner"><span class="qrLocBig">${loc==="North"?"NORTH":"SOUTH"}</span><span class="qrAddress">${esc(addr)}</span></div>
+    <h3>${esc(i.name)}</h3>
+    ${renderPartNumberChips(i)}
+    <img src="${qrImg(link)}" alt="QR for ${escAttr(i.name)} ${escAttr(loc)}">
+    <div class="qrQtyLine">
+      <div class="mini"><span>${esc(loc)}</span><b>${thisQty}</b></div>
+      <div class="mini"><span>${esc(other)}</span><b>${otherQty}</b></div>
+    </div>
+    ${otherQty===0?`<span class="qrOtherBlank">${esc(other)} blank / 0</span>`:""}
+    <p class="small">ID: ${esc(i.id)}</p>
+    <div class="qrLinkedNote">Linked to the same part. Scan opens ${esc(loc)} first; tech can switch location before saving.</div>
+  </div>`;
+}
+
+function suggestedOrder(i){
+  const count=itemCount(i,"North")+itemCount(i,"South");
+  if(i.reorder===""||i.reorder===null||i.reorder===undefined)return "";
+  const r=Number(i.reorder);
+  if(count>r)return 0;
+  if(i.max!==""&&i.max!==null&&i.max!==undefined){ const m=Number(i.max); if(m>count)return m-count; }
+  return Math.max(r-count,0);
+}
+function partGroup(i){
+  const cat=(i.category||"").toLowerCase();
+  const sub=(i.subcategory||"").toLowerCase();
+  const name=(i.name||"").toLowerCase();
+  if(name.includes("relief cartridge")) return "relief";
+  if(name.includes("valve") || sub.includes("valves")) return "valves";
+  if(name.includes("fitting") || name.includes("hose") || name.includes("seal") || name.includes("quick disconnect") || name.includes("tee") || name.includes("connector") || sub.includes("fittings")) return "fittings";
+  if(cat.includes("electrical")) return "electrical";
+  if(cat.includes("hydraulic")) return "hydraulic";
+  if(cat.includes("hardware")) return "hardware";
+  return "other";
+}
+function orderGroupLabel(g){
+  return {
+    all:"All Parts", electrical:"Electrical", hydraulic:"Hydraulic", valves:"Valves",
+    fittings:"Fittings / Hoses / Seals", relief:"Relief Cartridges", hardware:"Hardware", adcheck:"AD Check"
+  }[g] || "All Parts";
+}
+function setOrderGroup(g){
+  currentOrderGroup=g;
+  document.querySelectorAll(".orderGroupBtn").forEach(b=>b.classList.remove("active"));
+  const btn=document.getElementById("grp_"+g);
+  if(btn) btn.classList.add("active");
+  renderOrderView();
+}
+function orderNeedStatus(i){
+  const s=itemStatus(i);
+  if(s==="OUT") return "OUT";
+  if(s==="LOW") return "LOW";
+  if(s==="AT") return "AT REORDER";
+  return "OK";
+}
+function filterOrderItems(){
+  let rows=state.items.slice();
+  if(currentOrderGroup==="adcheck"){
+    rows=rows.filter(i=>i.adcItems && i.adcItems.length);
+  } else if(currentOrderGroup!=="all"){
+    rows=rows.filter(i=>partGroup(i)===currentOrderGroup);
+  }
+  const sort=document.getElementById("orderSort") ? document.getElementById("orderSort").value : "status";
+  const p={"OUT":0,"LOW":1,"AT":2,"OK":3};
+  rows.sort((a,b)=>{
+    if(sort==="name") return a.name.localeCompare(b.name);
+    if(sort==="northLow") return itemCount(a,"North")-itemCount(b,"North") || a.name.localeCompare(b.name);
+    if(sort==="southLow") return itemCount(a,"South")-itemCount(b,"South") || a.name.localeCompare(b.name);
+    if(sort==="orderHigh") return (Number(suggestedOrder(b)||0)-Number(suggestedOrder(a)||0)) || a.name.localeCompare(b.name);
+    return (p[itemStatus(a)]-p[itemStatus(b)]) || a.name.localeCompare(b.name);
+  });
+  return rows;
+}
+function orderRowHtml(i){
+  const s=itemStatus(i);
+  const need=["OUT","LOW","AT"].includes(s);
+  const cls=s==="OUT" ? "outNeed" : need ? "need" : "";
+  const orderQty=suggestedOrder(i);
+  const orderText=orderQty==="" ? "CHECK" : orderQty;
+  const adCodes=(i.adcItems||[]).map(x=>x.code).join(", ");
+  const pendingQty=pendingQtyFor(i.id);
+  const total=itemCount(i,"North") + itemCount(i,"South");
+  const badges = `${i.adcItems&&i.adcItems.length?`<div class="adcBadge">🧾 AD stock ${esc(adCodes)}</div>`:""}${i.checkInventory?`<div class="checkBadge">🔎 Check inventory</div>`:""}${pendingQty>0?`<div class="pendingBadge">⏳ Pending ${pendingQty}</div>`:""}`;
+  return `<details class="orderRow ${cls}">
+    <summary class="orderSummary">
+      <div>
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3>${esc(i.name)}</h3>
+            <div class="small">${esc(i.category)} / ${esc(i.subcategory)}</div>
+            ${badges}
+          </div>
+          ${statusPill(s)}
+        </div>
+        <div class="orderMeta">
+          <div class="mini"><span>North</span><b>${itemCount(i,"North")}</b></div>
+          <div class="mini"><span>South</span><b>${itemCount(i,"South")}</b></div>
+          <div class="mini"><span>Total</span><b>${total}</b></div>
+          <div class="mini"><span>Reorder</span><b>${i.reorder===""?"-":i.reorder}</b></div>
+        </div>
+      </div>
+      <div class="orderHint">Tap for details</div>
+    </summary>
+    <div class="orderDetails">
+      <div class="recommendBox">
+        <div class="mini"><span>Recommended order</span><b>${need ? orderText : "-"}</b></div>
+        <div class="mini"><span>Max stock</span><b>${i.max===""?"-":i.max}</b></div>
+        <div class="mini"><span>Pending</span><b>${pendingQty}</b></div>
+        <div class="mini"><span>Math</span><b>Overall</b></div>
+      </div>
+      <div class="inlineInfo">Reorder point is currently checked against total stock, meaning North + South together. Location counts stay visible so you can decide where the order should go.</div>
+      ${renderPartNumberChips(i)}
+      <div class="small notesLine" style="margin-top:8px">${esc(i.notes||"")}</div>
+      <div class="actionBar">
+        <button class="btn-primary miniAction" onclick="openPartById('${i.id}','North')">Adjust N</button>
+        <button class="btn-primary miniAction" onclick="openPartById('${i.id}','South')">Adjust S</button>
+        ${i.checkInventory?`<button class="btn-yellow miniAction" onclick="markInventoryChecked('${i.id}')">Checked</button>`:""}
+        <button class="btn-light miniAction" onclick="markPending('${i.id}')">Pending</button>
+        ${(i.adcItems&&i.adcItems[0])?`<a class="btn-light miniAction" target="_blank" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center" href="https://www.automationdirect.com/adc/search/search_results?searchquery=${encodeURIComponent(i.adcItems[0].code)}">Search AD</a>`:""}
+      </div>
+    </div>
+  </details>`;
+}
+function linesForEmail(group, loc){
+  return state.items
+    .filter(i=>partGroup(i)===group && ["OUT","LOW","AT"].includes(itemStatus(i)))
+    .map(i=>`- ${i.name} | ${loc?loc+": "+itemCount(i,loc):"N:"+itemCount(i,"North")+" S:"+itemCount(i,"South")} | reorder:${i.reorder===""?"N/A":i.reorder} | order:${suggestedOrder(i)===""?"CHECK":suggestedOrder(i)}`)
+    .join("%0D%0A");
+}
+function mailTo(to, subject, body){
+  window.location.href=`mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${body}`;
+}
+function valveOutItems(){
+  // Valve ordering intentionally shows EVERY valve-related item, not only total out-of-stock items.
+  // This lets you build one email with quantities split by delivery address.
+  return state.items
+    .filter(i=>partGroup(i)==="valves")
+    .sort((a,b)=>a.name.localeCompare(b.name));
+}
+const LOCATION_ADDRESSES={
+  North:"111 Reed Rd, West Palm Beach, FL 33403",
+  South:"1770 SW 13th Ct, Pompano Beach, FL 33069"
+};
+function defaultValveOrderQty(i,loc){
+  // Start every valve order quantity at 0 so nothing is added unless selected manually.
+  return 0;
+}
+function openValveOrderModal(){
+  const modal=document.getElementById("valveEmailModal");
+  const list=document.getElementById("valveOrderItems");
+  if(!modal || !list) return;
+  const rows=valveOutItems();
+  list.innerHTML = rows.length ? rows.map(i=>{
+    return `<div class="valveOrderRow">
+      <div>
+        <b>${esc(i.name)}</b>
+        ${renderPartNumberChips(i)}
+        <div class="small notesLine">${esc(i.notes||"")}</div>
+      </div>
+      <div class="valveOrderQty valveOrderQtyGrid">
+        <div class="valveOrderQtyLine">
+          <div class="valveOrderAddress">${esc(LOCATION_ADDRESSES.South)}</div>
+          <input type="number" min="0" step="1" value="0" data-valve-order-id="${escAttr(i.id)}" data-valve-order-loc="South" oninput="updateValveEmailPreview()">
+        </div>
+        <div class="valveOrderQtyLine">
+          <div class="valveOrderAddress">${esc(LOCATION_ADDRESSES.North)}</div>
+          <input type="number" min="0" step="1" value="0" data-valve-order-id="${escAttr(i.id)}" data-valve-order-loc="North" oninput="updateValveEmailPreview()">
+        </div>
+      </div>
+    </div>`;
+  }).join("") : `<div class="card">No valve items found.</div>`;
+  modal.classList.remove("hidden");
+  updateValveEmailPreview();
+}
+function closeValveOrderModal(){
+  const modal=document.getElementById("valveEmailModal");
+  if(modal) modal.classList.add("hidden");
+}
+function valveQtyForEmail(itemId,loc){
+  const input=document.querySelector(`[data-valve-order-id="${CSS.escape(itemId)}"][data-valve-order-loc="${loc}"]`);
+  return input ? Number(input.value||0) : 0;
+}
+function buildValveEmailText(){
+  const rows=valveOutItems();
+  const sections=[];
+  const orderByLoc=["South","North"];
+  orderByLoc.forEach(loc=>{
+    const locLines=[];
+    rows.forEach(i=>{
+      const qty=valveQtyForEmail(i.id,loc);
+      if(qty<=0) return;
+      const nums=getPartNumbers(i);
+      const pn=nums.length ? nums.join(" | ") : "N/A";
+      locLines.push(`- Qty ${qty} — ${i.name} — Part # ${pn}`);
+    });
+    if(locLines.length){
+      sections.push(`${LOCATION_ADDRESSES[loc]}\n${locLines.join("\n")}`);
+    }
+  });
+  return `Good afternoon Dale,\n\nI need to order the following valve items:\n\n${sections.length?sections.join("\n\n"):"No valve items selected."}\n\nThank you.`;
+}
+function updateValveEmailPreview(){
+  const area=document.getElementById("valveEmailPreview");
+  if(area) area.value=buildValveEmailText();
+}
+function copyValveEmail(){
+  copyText(buildValveEmailText());
+}
+function openValveEmail(){
+  const to="dale@cunninghamfluidpower.com";
+  const subject="Stock Order for WRS";
+  const body=buildValveEmailText();
+  const gmailUrl = "https://mail.google.com/mail/?view=cm&fs=1" +
+    "&to=" + encodeURIComponent(to) +
+    "&su=" + encodeURIComponent(subject) +
+    "&body=" + encodeURIComponent(body);
+  window.open(gmailUrl, "_blank");
+}
+function emailFittings(loc){
+  const to=loc==="South" ? "Eric.Held@hydraulic-supply.com" : "ronaldo.pina@hydraulic-supply.com";
+  const name=loc==="South" ? "Eric" : "Ronaldo";
+  const body=`Hello ${name},%0D%0A%0D%0ACan you please quote/restock the following fittings/hoses/seals for ${loc}:%0D%0A%0D%0A${linesForEmail("fittings",loc)}%0D%0A%0D%0AThank you.`;
+  mailTo(to,`${loc} Fittings / Hoses / Seals Restock Request`,body);
+}
+function emailRelief(){
+  const body=`Hello,%0D%0A%0D%0ACan you please quote/restock the following relief cartridge items:%0D%0A%0D%0A${linesForEmail("relief")}%0D%0A%0D%0AThank you.`;
+  mailTo("estewart@gcc-na.com","Relief Cartridge Restock Request",body);
+}
+function vendorActionsHtml(){
+  if(currentOrderGroup==="adcheck"){
+    return `<a href="https://www.automationdirect.com/adc/home/home" target="_blank">AutomationDirect</a><button class="btn-yellow" onclick="downloadOrderCSV()">Download Order CSV</button>`;
+  }
+  if(currentOrderGroup==="electrical"){
+    return `<a href="https://www.automationdirect.com/adc/home/home" target="_blank">AutomationDirect</a>
+            <a href="https://www.factorymation.com/" target="_blank">FactoryMation</a>`;
+  }
+  if(currentOrderGroup==="valves"){
+    return `<button class="btn-green" onclick="openValveOrderModal()">Build Valve Order Email - Dale</button>`;
+  }
+  if(currentOrderGroup==="hydraulic"){
+    return `<a href="https://estore.prtparts.com/Resources.aspx" target="_blank">PTR Parts / PRT eStore</a>
+            <a href="https://www.partscentral.com/home" target="_blank">Parts Central</a>`;
+  }
+  if(currentOrderGroup==="fittings"){
+    return `<button class="btn-green" onclick="emailFittings('South')">Email South - Eric Held</button>
+            <button class="btn-green" onclick="emailFittings('North')">Email North - Ronaldo Pina<br><span style="font-size:.8rem;font-weight:700">786-564-7535</span></button>`;
+  }
+  if(currentOrderGroup==="relief"){
+    return `<button class="btn-green" onclick="emailRelief()">Email Estewart - GCC Relief Cartridges</button>`;
+  }
+  return `<button class="btn-yellow" onclick="downloadOrderCSV()">Download Order List CSV</button>`;
+}
+function renderOrderView(){
+  const title=document.getElementById("orderGroupTitle");
+  const sub=document.getElementById("orderGroupSub");
+  const actions=document.getElementById("vendorActions");
+  const cards=document.getElementById("orderCards");
+  if(!title || !cards) return;
+  title.textContent=orderGroupLabel(currentOrderGroup);
+  const rows=filterOrderItems();
+  const needs=rows.filter(i=>["OUT","LOW","AT"].includes(itemStatus(i))).length;
+  sub.textContent=`Showing ${rows.length} part(s). ${needs} need attention. Tap an item to see recommended order amount.`;
+  actions.innerHTML=vendorActionsHtml();
+  cards.innerHTML=rows.length ? rows.map(orderRowHtml).join("") : `<div class="card">No parts in this section.</div>`;
+}
+function buildReorderText(){
+  const need = state.items
+    .filter(i=>["OUT","LOW","AT"].includes(itemStatus(i)))
+    .sort((a,b)=>{
+      const p={"OUT":0,"LOW":1,"AT":2};
+      return (p[itemStatus(a)]-p[itemStatus(b)]) || a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+    });
+  const groups = {};
+  need.forEach(i=>{
+    const orderQty = suggestedOrder(i);
+    const qtyText = `N:${itemCount(i,"North")} S:${itemCount(i,"South")}`;
+    const reorderText = i.reorder==="" ? "" : ` / reorder:${i.reorder}`;
+    const orderText = orderQty==="" ? "order:CHECK" : `order:${orderQty}`;
+    const line = `- ${i.name} — ${qtyText}${reorderText} / ${orderText}`;
+    if(!groups[i.category]) groups[i.category] = [];
+    groups[i.category].push(line);
+  });
+  const date = new Date().toLocaleDateString();
+  let out = `REORDER LIST - ${date}\n`;
+  if(!need.length) return out + "No parts need reorder right now.";
+  Object.keys(groups).sort().forEach(cat=>{
+    out += `\n${cat.toUpperCase()}\n` + groups[cat].join("\n") + "\n";
+  });
+  return out.trim();
+}
+function renderReorderCopyBox(){
+  const box=document.getElementById("reorderCopyBox");
+  if(box) box.value=buildReorderText();
+}
+function copyReorderList(){
+  const text=buildReorderText();
+  const box=document.getElementById("reorderCopyBox");
+  if(box) box.value=text;
+  navigator.clipboard.writeText(text).then(()=>showToast("Reorder list copied"),()=>prompt("Copy reorder list:",text));
+}
+function csvRow(arr){return arr.map(v=>'"'+String(v??"").replaceAll('"','""')+'"').join(",");}
+function downloadAllCSV(){
+  const lines=[csvRow(["ID","Category","Subcategory","Item","North","South","Unit","Reorder","Max","Status","AD Codes","Check Inventory","Notes"])];
+  state.items.forEach(i=>lines.push(csvRow([i.id,i.category,i.subcategory,i.name,i.northQty,i.southQty,i.unit,i.reorder,i.max,itemStatus(i),(i.adcItems||[]).map(x=>x.code).join("; "),i.checkInventory?"YES":"",i.notes])));
+  blobDownload(lines.join("\n"),"full_inventory.csv","text/csv");
+}
+function downloadOrderCSV(){
+  const lines=[csvRow(["Category","Item","North","South","Reorder","Max","Suggested Order","Notes"])];
+  state.items.filter(i=>["OUT","LOW","AT"].includes(itemStatus(i))).forEach(i=>lines.push(csvRow([i.category,i.name,i.northQty,i.southQty,i.reorder,i.max,suggestedOrder(i),i.notes])));
+  blobDownload(lines.join("\n"),"order_later_list.csv","text/csv");
+}
+function exportJSON(){ blobDownload(JSON.stringify(state,null,2),"inventory_backup.json","application/json"); }
+function importJSON(e){
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{try{const obj=JSON.parse(reader.result); if(!obj.items)throw new Error("Invalid backup"); state=migrateState(obj); saveState(); renderAdmin(); showToast("Backup imported");}catch(err){alert("Import failed: "+err.message);}};
+  reader.readAsText(file);
+}
+
+function renderSearchSuggestions(){
+  const box=document.getElementById("searchSuggestions");
+  const input=document.getElementById("search");
+  if(!box || !input) return;
+  const q=input.value.toLowerCase().trim();
+  if(!q){ box.classList.add("hidden"); box.innerHTML=""; return; }
+  const matches=[];
+  const seen=new Set();
+  state.items.forEach(i=>{
+    const blob=[i.id,i.name,i.category,i.subcategory,i.notes,i.condition,(i.adcItems||[]).map(a=>a.code).join(" ")].join(" ").toLowerCase();
+    if(blob.includes(q) && !seen.has(i.id)){
+      seen.add(i.id);
+      matches.push({type:"Part", title:i.name, sub:`${i.category} / ${i.subcategory} • N:${itemCount(i,"North")} S:${itemCount(i,"South")}`, value:i.name});
+    }
+  });
+  [...new Set(state.items.map(i=>i.category))].filter(c=>c.toLowerCase().includes(q)).forEach(c=>matches.push({type:"Category", title:c, sub:"Filter category", value:c}));
+  [...new Set(state.items.map(i=>i.subcategory).filter(Boolean))].filter(c=>c.toLowerCase().includes(q)).slice(0,3).forEach(c=>matches.push({type:"Group", title:c, sub:"Filter by related parts", value:c}));
+  const out=matches.slice(0,8);
+  if(!out.length){ box.classList.add("hidden"); box.innerHTML=""; return; }
+  box.innerHTML=out.map((m,idx)=>`<button class="suggestionItem" type="button" onclick="pickSearchSuggestion('${escAttr(m.value)}')"><div><b>${esc(m.title)}</b><span>${esc(m.sub)}</span></div><span>${esc(m.type)}</span></button>`).join("");
+  box.classList.remove("hidden");
+}
+function pickSearchSuggestion(value){
+  const input=document.getElementById("search"); if(input) input.value=value;
+  hideSearchSuggestions();
+  renderAdmin();
+}
+function hideSearchSuggestions(){
+  const box=document.getElementById("searchSuggestions"); if(box) box.classList.add("hidden");
+}
+document.addEventListener("click", function(e){
+  if(e.target.closest(".searchBox")) return;
+  hideSearchSuggestions();
+});
+
+function blobDownload(content,name,type){const b=new Blob([content],{type}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+function resetData(){ if(!confirm("Reset inventory and clear log?"))return; state={items:cloneStarter(),log:[]}; saveState(); renderAdmin(); }
+["search","categoryFilter","statusFilter"].forEach(id=>{const el=document.getElementById(id); if(el) el.addEventListener("input",()=>{renderAdmin(); renderSearchSuggestions();});});
+document.getElementById("activeLocation").addEventListener("change",e=>setUiPref(LOC_KEY,e.target.value));
+document.getElementById("baseUrl").value=getBaseUrl();
+applyUiPrefs();
+populateFilters();
+route();
+</script>
+</body>
+</html>
