@@ -39,6 +39,7 @@
     .scanLine{position:absolute;left:18%;right:18%;height:3px;background:#22c55e;box-shadow:0 0 12px #22c55e;animation:scan 1.8s linear infinite}
     @keyframes scan{0%{top:20%}50%{top:78%}100%{top:20%}}
     .scanControls{padding:12px;display:grid;gap:8px;background:#111827}
+    .scannerHint{color:#dbeafe;background:rgba(59,130,246,.14);border:1px solid rgba(147,197,253,.35);border-radius:14px;padding:10px 12px;font-size:.78rem;line-height:1.35}
     .statusBar{padding:10px 12px;background:#0f172a;color:#dbeafe;font-size:.8rem}
     .bigStart{width:100%;font-size:1.05rem;min-height:66px}
     .quickPanel{position:fixed;left:0;right:0;bottom:0;background:white;border-radius:26px 26px 0 0;box-shadow:0 -18px 70px rgba(15,23,42,.35);z-index:100;padding:14px;transform:translateY(110%);transition:.18s ease;max-height:88vh;overflow:auto}
@@ -350,9 +351,7 @@
         </div>
         <button id="startBtn" class="btn-green bigStart" onclick="startScanner()">START SCANNER</button>
         <button id="stopBtn" class="btn-light hidden" onclick="stopScanner()">Stop Camera</button>
-        <label style="color:#dbeafe;display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0">
-          <input id="autoContinue" type="checkbox" checked style="width:22px;min-height:22px"> Auto-close after update
-        </label>
+        <div class="scannerHint">After saving, the part stays open. Tap <b>Keep Updating / Scan Next</b> to return to the camera.</div>
       </div>
       <div class="statusBar" id="scanMessage">Press START SCANNER, then scan the QR code on the parts container.</div>
     </section>
@@ -631,7 +630,7 @@
       <button class="btn-yellow" onclick="setExact()">Set Exact</button>
     </div>
     <div style="height:10px"></div>
-    <button class="btn-dark" style="width:100%" onclick="closePanel()">Close / Scan Next</button>
+    <button class="btn-dark" style="width:100%" onclick="closePanel()">Keep Updating / Scan Next</button>
   </div>
 
 <script>
@@ -669,8 +668,19 @@ let canvas = document.createElement("canvas");
 let ctx = canvas.getContext("2d", { willReadFrequently: true });
 let lastCode = "";
 let lastCodeTime = 0;
+const SYNC_SOURCE = "src_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2);
+let stateSyncChannel = null;
+let lastStateJSON = "";
 seedPresetPendingOrders();
-saveState();
+saveState({silent:true});
+try{
+  stateSyncChannel = new BroadcastChannel("shop_inventory_state_sync_v1");
+  stateSyncChannel.onmessage = (ev)=>{
+    if(ev && ev.data && ev.data.type === "state-updated" && ev.data.source !== SYNC_SOURCE) reloadStateFromStorage("broadcast");
+  };
+}catch(e){}
+window.addEventListener("storage", (e)=>{ if(e.key === STORAGE_KEY) reloadStateFromStorage("storage"); });
+window.addEventListener("focus", ()=>reloadStateFromStorage("focus"));
 
 function cloneStarter(){ return JSON.parse(JSON.stringify(STARTER_ITEMS)); }
 function loadState(){ try{ const s=localStorage.getItem(STORAGE_KEY); if(s) return JSON.parse(s); }catch(e){} return {items:cloneStarter(), log:[], pendingOrders:[]}; }
@@ -764,7 +774,38 @@ function seedPresetPendingOrders(){
     }
   });
 }
-function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function saveState(opts={}){
+  const raw = JSON.stringify(state);
+  localStorage.setItem(STORAGE_KEY, raw);
+  lastStateJSON = raw;
+  refreshLiveViews();
+  if(!opts.silent && stateSyncChannel){
+    try{ stateSyncChannel.postMessage({type:"state-updated", source:SYNC_SOURCE, at:Date.now()}); }catch(e){}
+  }
+}
+function reloadStateFromStorage(reason=""){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY) || "";
+    if(!raw || raw === lastStateJSON) return;
+    state = migrateState(JSON.parse(raw));
+    lastStateJSON = raw;
+    if(currentItem){
+      const updated = state.items.find(i=>i.id===currentItem.id);
+      if(updated) currentItem = updated;
+    }
+    refreshLiveViews();
+    if(currentItem) refreshPanel();
+  }catch(e){}
+}
+function refreshLiveViews(){
+  try{
+    const adminVisible = currentUser && currentUser.role === "admin" && !document.getElementById("adminPage")?.classList.contains("hidden");
+    if(adminVisible){ renderAdmin(); return; }
+    renderLog();
+    const statChanges=document.getElementById("statChanges");
+    if(statChanges) statChanges.textContent=state.log.length;
+  }catch(e){}
+}
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escAttr(s){ return String(s??"").replace(/[&<>"\']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"\'":'&#39;'}[c])); }
 function itemCount(i, loc){ return Number(i[loc==="North"?"northQty":"southQty"]||0); }
@@ -908,6 +949,7 @@ function route(){
     document.getElementById("activeLocation").value = getUiPref(LOC_KEY,"North");
     const params = new URLSearchParams(location.search);
     if(params.get("part")) openPartById(params.get("part"), params.get("loc") || document.getElementById("activeLocation").value);
+    requestCameraPermissionOnTechScreen();
   }
 }
 function populateFilters(){
@@ -1033,13 +1075,20 @@ function renderLog(){
   body.innerHTML=state.log.slice().reverse().map(l=>`<tr><td data-label="Time">${esc(l.time)}</td><td data-label="Tech">${esc(l.tech)}</td><td data-label="Action">${esc(l.action)}</td><td data-label="Part">${esc(l.name)}</td><td data-label="Location">${esc(l.location)}</td><td data-label="Qty">${esc(l.qty)}</td><td data-label="Before">${esc(l.before)}</td><td data-label="After">${esc(l.after)}</td></tr>`).join("");
 }
 
+function requestCameraPermissionOnTechScreen(){
+  if(currentUser && currentUser.role === "tech" && !scannerRunning){
+    const msg=document.getElementById("scanMessage");
+    if(msg) msg.textContent="Starting camera and asking for permission…";
+    setTimeout(()=>startScanner(), 150);
+  }
+}
 async function startScanner(){
   if(scannerRunning)return;
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}, width:{ideal:1280}, height:{ideal:720}}, audio:false});
     const video=document.getElementById("video");
     video.srcObject=stream; await video.play();
-    scannerRunning=true; scannerPaused=false;
+    scannerRunning=true; scannerPaused=!!currentItem;
     document.getElementById("startBtn").classList.add("hidden");
     document.getElementById("stopBtn").classList.remove("hidden");
     document.getElementById("scannerState").outerHTML='<span id="scannerState" class="pill ok">SCANNING</span>';
@@ -1060,6 +1109,7 @@ async function startScanner(){
 function stopScanner(){
   scannerRunning=false;
   if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  const video=document.getElementById("video"); if(video) video.srcObject=null;
   if(document.getElementById("startBtn")) document.getElementById("startBtn").classList.remove("hidden");
   if(document.getElementById("stopBtn")) document.getElementById("stopBtn").classList.add("hidden");
   if(document.getElementById("scannerState")) document.getElementById("scannerState").outerHTML='<span id="scannerState" class="pill neutral">READY</span>';
@@ -1123,6 +1173,7 @@ function openPartById(id, loc){
 }
 function openPanel(item, loc){
   currentItem=item;
+  scannerPaused=true;
   currentScannedLabelLocation = loc || getUiPref(LOC_KEY,"North");
   document.getElementById("scanMessage").textContent = "Scanned: " + item.name + " — choose how many to take/add.";
   document.getElementById("panelLocation").value=currentScannedLabelLocation;
@@ -1135,6 +1186,10 @@ function closePanel(){
   document.getElementById("quickPanel").classList.remove("open");
   currentItem=null;
   scannerPaused=false;
+  if(scannerRunning && currentUser && currentUser.role === "tech"){
+    const msg=document.getElementById("scanMessage");
+    if(msg) msg.textContent="Camera ready — scan the next container.";
+  }
   if(currentUser && currentUser.role==="admin") renderAdmin();
 }
 function refreshPanel(){
@@ -1173,13 +1228,13 @@ function quickChange(delta){
   state.log.push({time:new Date().toLocaleString(),tech,action,name:currentItem.name,id:currentItem.id,location:loc,qty:Math.abs(delta),before,after});
   saveState();
   beep();
-  document.getElementById("lastAction").innerHTML=`Saved for <b>${esc(currentItem.name)}</b><br><b>${loc}</b>: ${before} → ${after}`;
-  showToast(`Saved: ${currentItem.name} at ${loc} ${before} → ${after}`);
+  document.getElementById("lastAction").innerHTML=`Saved for <b>${esc(currentItem.name)}</b><br><b>${loc}</b>: ${before} → ${after}<br><span class="small">Press Keep Updating / Scan Next when you are ready for the camera again.</span>`;
+  const scanMsg=document.getElementById("scanMessage");
+  if(scanMsg) scanMsg.textContent="Saved. Part is still open so you can make another adjustment.";
+  scannerPaused=true;
   refreshPanel();
-  if(document.getElementById("autoContinue") && document.getElementById("autoContinue").checked){
-    setTimeout(()=>{ closePanel(); document.getElementById("scanMessage").textContent="Saved. Scanner is ready — scan the next container."; },500);
-  }
 }
+
 function customTake(){ const q=Number(document.getElementById("customQty").value||0); if(q>0)quickChange(-q); }
 function customAdd(){ const q=Number(document.getElementById("customQty").value||0); if(q>0)quickChange(q); }
 function setExact(){
@@ -1194,7 +1249,10 @@ function setExact(){
   state.log.push({time:new Date().toLocaleString(),tech,action:"set exact",name:currentItem.name,id:currentItem.id,location:loc,qty:q,before,after:q});
   saveState();
   beep();
-  document.getElementById("lastAction").innerHTML=`Exact count saved: <b>${loc}</b> ${before} → ${q}`;
+  document.getElementById("lastAction").innerHTML=`Exact count saved: <b>${loc}</b> ${before} → ${q}<br><span class="small">Press Keep Updating / Scan Next when you are ready for the camera again.</span>`;
+  const scanMsg=document.getElementById("scanMessage");
+  if(scanMsg) scanMsg.textContent="Exact count saved. Part is still open so you can keep adjusting.";
+  scannerPaused=true;
   refreshPanel();
 }
 function pendingQtyFor(id){
